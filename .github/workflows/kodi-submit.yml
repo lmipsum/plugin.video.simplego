@@ -1,0 +1,47 @@
+name: kodi-submit
+
+# Opens a pull request to Kodi's official repository (xbmc/repo-plugins, nexus: Kodi 20 and newer)
+# with the add-on as of `ref`, from a fork under the token owner's account. Run from the release
+# workflow (its submit_to_kodi input), or by hand for a released version:
+# `gh workflow run kodi-submit.yml --ref main -f ref=v1.2.3`.
+# The submitter packs `git archive`: .gitattributes keeps everything but the add-on itself out.
+# Secrets: KODI_SUBMIT_TOKEN (a token with public_repo scope), KODI_SUBMIT_EMAIL (the commit e-mail).
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "What to submit: a version tag (vX.Y.Z), or main"
+        required: true
+  workflow_call:
+    inputs:
+      ref:
+        required: true
+        type: string
+    secrets:
+      KODI_SUBMIT_TOKEN:
+        required: true
+      KODI_SUBMIT_EMAIL:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: xbmc/action-kodi-addon-submitter@1b063d1bd4ad94e293f41b6d2951022c134c25ea # v1.3
+        with:
+          kodi-repository: repo-plugins
+          kodi-version: nexus
+          addon-id: plugin.video.simplego
+          kodi-matrix: false
+          sub-directory: false
+        env:
+          GH_USERNAME: ${{ github.repository_owner }}
+          GH_TOKEN: ${{ secrets.KODI_SUBMIT_TOKEN }}
+          EMAIL: ${{ secrets.KODI_SUBMIT_EMAIL }}

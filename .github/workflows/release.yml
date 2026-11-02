@@ -5,8 +5,15 @@ name: release
 # It writes the news from the feat:/fix: commits (see scripts/update_news.py), commits it,
 # tags that commit vX.Y.Z, publishes the installable zip and adds it to the Kodi repository
 # (the gh-pages branch, see scripts/build_repo.py). Merge main back into dev afterwards.
+# With submit_to_kodi it also opens the pull request to Kodi's official repository (see kodi-submit.yml):
+# for stable versions only, as that repository wants few updates (https://kodi.wiki/view/Add-on_rules#Updates).
 on:
   workflow_dispatch:
+    inputs:
+      submit_to_kodi:
+        description: "Also submit this version to Kodi's official repository"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -19,6 +26,8 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    outputs:
+      tag: v${{ env.VERSION }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -67,3 +76,11 @@ jobs:
           git -C pages add -A
           git -C pages commit -m "Publish the Kodi repository"
           git -C pages push origin gh-pages
+
+  kodi:
+    needs: release
+    if: inputs.submit_to_kodi
+    uses: ./.github/workflows/kodi-submit.yml
+    with:
+      ref: ${{ needs.release.outputs.tag }}
+    secrets: inherit

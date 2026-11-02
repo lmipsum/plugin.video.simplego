@@ -1,3 +1,19 @@
 * text=auto eol=lf
 *.png binary
 *.jpg binary
+
+# Left out of `git archive`, which Kodi's add-on submitter packs for the official repository
+# (see .github/workflows/kodi-submit.yml): what remains is what scripts/build_zip.py ships.
+.gitattributes export-ignore
+.github export-ignore
+.gitignore export-ignore
+.pre-commit-config.yaml export-ignore
+CONTRIBUTING.md export-ignore
+README.md export-ignore
+SECURITY.md export-ignore
+pytest.ini export-ignore
+repository.lmipsum export-ignore
+requirements-dev.txt export-ignore
+ruff.toml export-ignore
+scripts export-ignore
+tests export-ignore
