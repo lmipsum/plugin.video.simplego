@@ -46,7 +46,8 @@ def test_published_add_ons_are_listed_with_their_assets_and_a_changing_checksum(
     # A link Kodi's file manager lists: its text is its address.
     links = re.findall(r'<a href="([^"]+)">([^<]+)</a>', (pages / "index.html").read_text(encoding="utf-8"))
     href, text = links[0]
-    assert len(links) == 1 and href == text and href.startswith("repository.lmipsum/repository.lmipsum-") and href.endswith(".zip")
+    assert len(links) == 1 and href == text
+    assert href.startswith("repository.lmipsum/repository.lmipsum-") and href.endswith(".zip")
     first = (pages / "addons.xml.md5").read_text()
     # A new version: listed instead of the old one, its zip beside the old.
     repo.publish(str(pages), [plugin_zip(tmp_path, "1.0.1")])
