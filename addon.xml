@@ -30,7 +30,11 @@
             <screenshot>resources/screenshots/screenshot-continue.jpg</screenshot>
             <screenshot>resources/screenshots/screenshot-guide.jpg</screenshot>
         </assets>
-        <news>v0.8.142 (2026-11-02)
+        <news>v0.8.143 (2026-11-02)
+- No longer trust root certificates that certifi dropped as compromised
+- List the repository zip in Kodi's file manager
+
+v0.8.142 (2026-11-02)
 - First version: live TV and radio, watching back, favourites, Kodi TV guide</news>
     </extension>
 </addon>
