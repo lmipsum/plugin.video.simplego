@@ -64,3 +64,39 @@ def test_the_chain_reaches_a_root_kodis_certifi_already_has():
     cross_signed.verify_directly_issued_by(roots[0])
     # Nothing shipped is a root of its own: no trust is added, only the chain completed.
     assert all(load(name).subject != load(name).issuer for name in FINGERPRINTS)
+
+
+def entry(label):
+    return '\n# Issuer: CN=%s\n# Subject: CN=%s\n# Label: "%s"\n-----BEGIN CERTIFICATE-----\nAA\n-----END CERTIFICATE-----\n' % (
+        (label,) * 3
+    )
+
+
+def test_the_bundle_leaves_out_the_roots_certifi_dropped_as_untrustworthy(monkeypatch, tmp_path):
+    from resources.lib import clientfactory
+    from resources.lib import kodiutil
+
+    cacert = tmp_path / "cacert.pem"
+    cacert.write_text(
+        entry("GlobalSign Root CA") + entry("emSign ECC Root CA - G3") + entry("GLOBALTRUST 2020") + entry("USERTrust")
+    )
+    profile = tmp_path / "profile"
+    profile.mkdir()
+    (profile / "ca-bundle.pem").write_text("old, unfiltered")
+    monkeypatch.setattr(clientfactory, "_certifi_file", lambda: str(cacert))
+    monkeypatch.setattr(clientfactory, "_bundle", None)
+    monkeypatch.setattr(kodiutil, "PROFILE", str(profile))
+    bundle = open(clientfactory.ca_bundle()).read()
+    assert '"GlobalSign Root CA"' in bundle and '"USERTrust"' in bundle
+    assert "emSign" not in bundle and "GLOBALTRUST" not in bundle
+    assert bundle.count("BEGIN CERTIFICATE") == 2 + len(glob.glob(os.path.join(CERTS, "*.crt")))
+    assert not (profile / "ca-bundle.pem").exists()  # made without the filter: gone
+
+
+def test_every_distrusted_root_is_one_kodis_certifi_has():
+    from resources.lib import clientfactory
+
+    with open(certifi.where(), encoding="utf-8") as f:
+        labels = set(re.findall(r'# Label: "([^"]+)"', f.read()))
+    # The pinned certifi is Kodi's: a name not in it (a typo) would leave its root in.
+    assert certifi.__version__ != "2023.5.7" or set(clientfactory.DISTRUSTED) <= labels
