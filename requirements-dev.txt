@@ -1,10 +1,11 @@
-pytest==9.1.1
+pytest==9.2.0
 pytest-cov==7.1.0
-ruff==0.17.1
+ruff==0.17.3
 kodi-addon-checker==0.0.36
-# What Kodi 21's repository ships (script.module.certifi): the CA bundle is built on it.
+# What Kodi 21's repository ships (script.module.certifi): the CA bundle is built on it, so it stays
+# at this version (Dependabot ignores it); clientfactory.DISTRUSTED covers the roots dropped since.
 certifi==2023.5.7
 # scripts/update_certs.py only: the add-on itself has its own HTTP (resources/lib/net/transport.py).
-requests==2.31.0
+requests==2.34.2
 # scripts/update_certs.py and tests/test_certs.py.
 cryptography==50.0.2

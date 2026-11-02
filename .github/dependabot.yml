@@ -19,3 +19,6 @@ updates:
     groups:
       python:
         patterns: ["*"]
+    ignore:
+      # Pinned to what Kodi 21's repository ships (see requirements-dev.txt and clientfactory.DISTRUSTED).
+      - dependency-name: "certifi"
