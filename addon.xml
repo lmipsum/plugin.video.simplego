@@ -30,5 +30,7 @@
             <screenshot>resources/screenshots/screenshot-continue.jpg</screenshot>
             <screenshot>resources/screenshots/screenshot-guide.jpg</screenshot>
         </assets>
+        <news>v0.8.142 (2026-11-02)
+- First version: live TV and radio, watching back, favourites, Kodi TV guide</news>
     </extension>
 </addon>
