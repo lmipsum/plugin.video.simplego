@@ -67,7 +67,7 @@ def publish(pages, zips):
 
 
 def write_index(pages):
-    """Write addons.xml from the served add-ons' addon.xml, its md5, and an index page linking the repository zip."""
+    """Write addons.xml from the served add-ons' addon.xml, its md5, and an index page linking them and the repository zip."""
     addons, links = [], []
     for addon_id in sorted(os.listdir(pages)):
         path = os.path.join(pages, addon_id, "addon.xml")
@@ -77,18 +77,21 @@ def write_index(pages):
             text = f.read()
         addons.append(ADDON.search(text).group(0))
         if addon_id == REPOSITORY:
-            name = "%s/%s-%s.zip" % ((addon_id,) + identity(text))
-            # Kodi lists a link only if its text is its address (how it tells a server's file listing):
-            # https://github.com/xbmc/xbmc/blob/Omega/xbmc/filesystem/HTTPDirectory.cpp (NameMatchesLink).
-            links.append('<a href="%s">%s</a>' % ((html.escape(name),) * 2))
+            links.append("%s/%s-%s.zip" % ((addon_id,) + identity(text)))
     index = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<addons>\n%s\n</addons>\n' % "\n".join(addons)
     with open(os.path.join(pages, "addons.xml"), "w", encoding="utf-8", newline="\n") as f:
         f.write(index)
     with open(os.path.join(pages, "addons.xml.md5"), "w", encoding="utf-8", newline="\n") as f:
         f.write(hashlib.md5(index.encode("utf-8")).hexdigest())  # noqa: S324 - Kodi's change marker, not security
-    # Kodi's file manager lists a web source by its links: the page Pages serves for the folder.
+    # Kodi's file manager lists a web source by its links: the page Pages serves for the folder. It lists
+    # a link only if its text is its address (how it tells a server's file listing), and keeps the listing:
+    # a file of the folder missing from it does not open, so the repository's own files are listed too,
+    # or the repository fails until Kodi restarts. See NameMatchesLink in
+    # https://github.com/xbmc/xbmc/blob/Omega/xbmc/filesystem/HTTPDirectory.cpp and g_directoryCache in File.cpp.
+    links += ["addons.xml", "addons.xml.md5"]
     with open(os.path.join(pages, "index.html"), "w", encoding="utf-8", newline="\n") as f:
-        f.write("<!DOCTYPE html>\n<html><body>\n%s\n</body></html>\n" % "\n".join(links))
+        anchors = ('<a href="%s">%s</a>' % ((html.escape(name),) * 2) for name in links)
+        f.write("<!DOCTYPE html>\n<html><body>\n%s\n</body></html>\n" % "\n".join(anchors))
     # Pages would run Jekyll otherwise, which serves no file or folder starting with "_".
     open(os.path.join(pages, ".nojekyll"), "w").close()
 
