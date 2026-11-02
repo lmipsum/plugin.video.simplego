@@ -78,7 +78,9 @@ def write_index(pages):
         addons.append(ADDON.search(text).group(0))
         if addon_id == REPOSITORY:
             name = "%s/%s-%s.zip" % ((addon_id,) + identity(text))
-            links.append('<a href="%s">%s</a>' % (html.escape(name), html.escape(os.path.basename(name))))
+            # Kodi lists a link only if its text is its address (how it tells a server's file listing):
+            # https://github.com/xbmc/xbmc/blob/Omega/xbmc/filesystem/HTTPDirectory.cpp (NameMatchesLink).
+            links.append('<a href="%s">%s</a>' % ((html.escape(name),) * 2))
     index = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<addons>\n%s\n</addons>\n' % "\n".join(addons)
     with open(os.path.join(pages, "addons.xml"), "w", encoding="utf-8", newline="\n") as f:
         f.write(index)
