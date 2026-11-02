@@ -1,0 +1,55 @@
+name: Bug Report
+description: Something does not work as described.
+title: '[Bug]: '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: >
+        **Before posting:** remove tokens, login URLs (anything with access_token or refresh_token),
+        account and device identifiers and IP addresses from everything below.
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the Bug
+      description: What happened, and what you expected instead. Which channel, if it is channel specific?
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Kodi log
+      description: >
+        The kodi.log lines around the problem (redacted), with debug logging on
+        (Settings → System → Logging), or a link to a Gist. Where to find kodi.log:
+        https://github.com/lmipsum/plugin.video.simplego#reporting-a-problem
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: kodi
+    attributes:
+      label: Kodi version
+      placeholder: eg. 21.2
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and operating system
+      placeholder: eg. Chromecast with Google TV, Android 14
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Add-on version or commit
+      placeholder: eg. 0.4.0
+    validations:
+      required: true
+  - type: checkboxes
+    id: web
+    attributes:
+      label: Web player
+      options:
+        - label: The same channel plays in the web player (player.telekomtvgo.hu) from the same network.

@@ -1,0 +1,41 @@
+# Kodi 20/21 on older Linux distributions runs on Python 3.8, so the syntax stays 3.8-compatible.
+line-length = 130
+target-version = "py38"
+
+[lint]
+select = [
+    "I",   # isort - import order
+    "UP",  # pyupgrade
+    "T10", # debugger
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "D",   # pydocstyle: PEP 257 docstrings
+    "C90", # mccabe: no function too complex to follow
+    "B",   # bugbear: likely bugs
+    "BLE", # no blind except (where one is meant, it says why)
+    "SIM105", # contextlib.suppress over try/except/pass
+]
+# %-formatting is the norm in Kodi add-ons (localized strings carry %s / %d).
+ignore = [
+    "UP031",
+    # __init__ is documented in its class's docstring; magic methods need none.
+    "D105",
+    "D107",
+]
+
+[lint.mccabe]
+max-complexity = 10
+
+[lint.pydocstyle]
+convention = "pep257"
+
+[lint.per-file-ignores]
+# Test names say what they check; scripts are tools, not the add-on.
+"tests/*" = ["D"]
+"scripts/*" = ["D"]
+
+[lint.isort]
+force-single-line = true
+known-first-party = ["resources"]
+known-third-party = ["xbmc", "xbmcaddon", "xbmcgui", "xbmcplugin", "xbmcvfs", "inputstreamhelper", "pyqrcode"]

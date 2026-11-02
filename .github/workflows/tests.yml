@@ -1,0 +1,62 @@
+name: tests
+
+on:
+  push:
+    branches: [main, dev]
+    paths-ignore:
+      - "**/*.md"
+      - "LICENSE.txt"
+  pull_request:
+    paths-ignore:
+      - "**/*.md"
+      - "LICENSE.txt"
+
+permissions:
+  contents: read
+
+# A newer push to the same branch makes the older run moot.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Tests (Python ${{ matrix.python-version }})
+    # Pinned: ubuntu-latest moves to a new release on GitHub's schedule.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        # Kodi runs on 3.8 (older Linux distributions) to 3.11 (Android); ruff's py38 target guards the syntax.
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: python -m pip install -r requirements-dev.txt
+      - name: Lint
+        run: ruff check . && ruff format --check .
+      - name: Unit tests
+        # With the coverage of the add-on's own code; below the floor fails, so it only goes up.
+        run: python -m pytest -q --cov=resources --cov-report=term-missing:skip-covered --cov-fail-under=84
+
+  addon-checker:
+    name: Kodi add-on checker
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: python -m pip install -r requirements-dev.txt
+      - name: Check the release zip's content
+        run: |
+          python scripts/build_zip.py
+          mkdir -p build && cd build
+          unzip -q ../dist/*.zip
+          kodi-addon-checker --branch omega plugin.video.simplego

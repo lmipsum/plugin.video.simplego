@@ -1,0 +1,32 @@
+name: build
+
+# Run by hand (Actions → build → Run workflow, or `gh workflow run build.yml --ref dev`):
+# the installable zip of a branch, to try on a device before a release.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: python -m pip install -r requirements-dev.txt
+      - name: Lint and test
+        run: ruff check . && ruff format --check . && python -m pytest -q
+      - name: Build
+        run: |
+          python scripts/build_zip.py
+          echo "ZIP_NAME=$(basename dist/*.zip .zip)" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ env.ZIP_NAME }}
+          path: dist/*.zip
+          retention-days: 14

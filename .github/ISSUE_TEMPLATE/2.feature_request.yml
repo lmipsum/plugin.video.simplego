@@ -1,0 +1,32 @@
+name: Feature Request
+description: Suggest something the add-on should do.
+title: '[FR]: '
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: >
+        The add-on mirrors what the Telekom TV GO web player offers with your own subscription.
+        Requests to bypass the subscription, the login, the geo-restriction or the DRM will be closed.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Is your feature request related to a problem? Please elaborate.
+      description: A clear and concise description of what the problem is.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Describe the solution you'd like
+      description: How does the web player (or the official app) do it?
+    validations:
+      required: true
+  - type: checkboxes
+    id: kind
+    attributes:
+      label: Does your request involve any of the following?
+      options:
+        - label: A web player feature (catch-up, recordings, guide)
+        - label: Kodi TV / PVR integration
+        - label: A new setting

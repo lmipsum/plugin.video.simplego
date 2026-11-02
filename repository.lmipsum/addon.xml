@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="repository.lmipsum" name="lmipsum repository" version="1.0.0" provider-name="lmipsum">
+    <!-- Served by GitHub Pages from the gh-pages branch, which the release workflow publishes
+         (see scripts/build_repo.py). hashes false: Pages sends no content-sha256 header for Kodi to compare,
+         https://kodi.wiki/view/Add-on_repositories#hashes -->
+    <extension point="xbmc.addon.repository" name="lmipsum repository">
+        <dir minversion="20.0.0">
+            <info compressed="false">https://lmipsum.github.io/plugin.video.simplego/addons.xml</info>
+            <checksum>https://lmipsum.github.io/plugin.video.simplego/addons.xml.md5</checksum>
+            <datadir zip="true">https://lmipsum.github.io/plugin.video.simplego/</datadir>
+            <hashes>false</hashes>
+        </dir>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+        <summary lang="en_GB">Kodi add-ons by lmipsum, with their updates</summary>
+        <summary lang="hu_HU">lmipsum Kodi-kiegészítői, a frissítéseikkel</summary>
+        <description lang="en_GB">Installs and updates Simple GO (Magyar Telekom TV GO).</description>
+        <description lang="hu_HU">Telepíti és frissíti a Simple GO-t (Magyar Telekom TV GO).</description>
+        <platform>all</platform>
+        <license>GPL-3.0-or-later</license>
+        <source>https://github.com/lmipsum/plugin.video.simplego</source>
+        <assets>
+            <icon>icon.png</icon>
+        </assets>
+    </extension>
+</addon>
