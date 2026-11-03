@@ -2,9 +2,10 @@
 
 [![Tests](https://img.shields.io/github/actions/workflow/status/lmipsum/plugin.video.simplego/tests.yml?branch=main&label=tests&style=plastic)](https://github.com/lmipsum/plugin.video.simplego/actions/workflows/tests.yml)
 [![Secrets scan](https://img.shields.io/github/actions/workflow/status/lmipsum/plugin.video.simplego/secrets-scan.yml?branch=main&label=secrets%20scan&style=plastic)](https://github.com/lmipsum/plugin.video.simplego/actions/workflows/secrets-scan.yml)
-[![License: GPL v3](https://img.shields.io/github/license/lmipsum/plugin.video.simplego?style=plastic)](LICENSE.txt)
-[![Kodi 20+](https://img.shields.io/badge/Kodi-20%2B-blue?style=plastic)](https://kodi.tv/)
-[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Release](https://img.shields.io/github/v/release/lmipsum/plugin.video.simplego?style=plastic)](https://github.com/lmipsum/plugin.video.simplego/releases/latest)
+[![License](https://img.shields.io/badge/dynamic/xml?url=https%3A%2F%2Fraw.githubusercontent.com%2Flmipsum%2Fplugin.video.simplego%2Fmain%2Faddon.xml&query=%2F%2Flicense&label=license&color=blue&style=plastic)](LICENSE.txt)
+[![Kodi](https://img.shields.io/badge/dynamic/xml?url=https%3A%2F%2Fraw.githubusercontent.com%2Flmipsum%2Fplugin.video.simplego%2Fmain%2Faddon.xml&query=substring-before(%2F%2Fimport%5B%40addon%3D'inputstream.adaptive'%5D%2F%40version%2C'.')&suffix=%2B&label=Kodi&logo=kodi&logoColor=white&color=17B2E7&style=plastic)](https://kodi.tv/)
+[![Ruff](https://img.shields.io/badge/dynamic/yaml?url=https%3A%2F%2Fraw.githubusercontent.com%2Flmipsum%2Fplugin.video.simplego%2Fmain%2F.pre-commit-config.yaml&query=%24.repos%5B1%5D.rev&label=ruff&logo=ruff&logoColor=white&color=D7FF64&style=plastic)](https://github.com/astral-sh/ruff)
 
 Simple GO (`plugin.video.simplego`) is an unofficial [Kodi](https://kodi.tv/) add-on for Magyar Telekom's
 [TV GO](https://player.telekomtvgo.hu/) service: live TV and radio with your own subscription,
