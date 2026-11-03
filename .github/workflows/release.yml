@@ -27,7 +27,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
-      tag: v${{ env.VERSION }}
+      # A step's output: a job's outputs are not promised what later steps' env has.
+      tag: v${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -40,6 +41,7 @@ jobs:
       - name: Lint and test
         run: ruff check . && ruff format --check . && python -m pytest -q
       - name: Version not released yet
+        id: version
         run: |
           version=$(sed -n 's/.*<addon [^>]*version="\([^"]*\)".*/\1/p' addon.xml)
           if git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
@@ -47,6 +49,7 @@ jobs:
             exit 1
           fi
           echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: News
         run: python scripts/update_news.py > notes.md
       - name: Commit the news and tag it

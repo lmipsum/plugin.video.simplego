@@ -60,3 +60,18 @@ jobs:
           mkdir -p build && cd build
           unzip -q ../dist/*.zip
           kodi-addon-checker --branch omega plugin.video.simplego
+
+  lint-actions:
+    name: actionlint (the workflows)
+    # The release and Kodi submit workflows run by hand and rarely: a mistake in them shows here,
+    # not halfway through a release. Shell blocks are checked with shellcheck too.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: actionlint
+        shell: bash
+        # No marketplace action; the install script and the binary are pinned to v1.7.12.
+        run: |
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
+          ./actionlint -color
