@@ -5,7 +5,8 @@ name: kodi-submit
 # workflow (its submit_to_kodi input), or by hand for a released version:
 # `gh workflow run kodi-submit.yml --ref main -f ref=v1.2.3`.
 # The submitter packs `git archive`: .gitattributes keeps everything but the add-on itself out.
-# Secrets: KODI_SUBMIT_TOKEN (a token with public_repo scope), KODI_SUBMIT_EMAIL (the commit e-mail).
+# Secrets of the production environment (deployment branches: main only): KODI_SUBMIT_TOKEN
+# (a token with public_repo scope), KODI_SUBMIT_EMAIL (the commit e-mail).
 on:
   workflow_dispatch:
     inputs:
@@ -17,11 +18,6 @@ on:
       ref:
         required: true
         type: string
-    secrets:
-      KODI_SUBMIT_TOKEN:
-        required: true
-      KODI_SUBMIT_EMAIL:
-        required: true
 
 permissions:
   contents: read
@@ -30,6 +26,10 @@ jobs:
   submit:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    # For its secrets only: a submission is not a deployment.
+    environment:
+      name: production
+      deployment: false
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
