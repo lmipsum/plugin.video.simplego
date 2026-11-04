@@ -35,6 +35,7 @@ FILES = {"intermediate": "intermediate.crt", "cross_signed": "cross-signed-root.
 def host_certificate():
     """Return the host's own certificate, as it sends it (unverified: the chain is what is missing)."""
     context = ssl.create_default_context()
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
     with socket.create_connection((HOST, 443), timeout=20) as sock, context.wrap_socket(sock, server_hostname=HOST) as tls:
