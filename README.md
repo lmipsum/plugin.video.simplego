@@ -69,11 +69,7 @@ Without updates: install `plugin.video.simplego-<version>.zip` from the same rel
 Choose *Log in* in the main menu. Scan the QR code with a phone on the same network, tap
 *Log in with Telekom account*, log in with your TV GO e-mail address and password, then copy the
 **web address** of the page you land on (not its text) and send it back on the add-on's page.
-The login lasts about a year.
-
-The login happens on a phone because the Telekom login page is protected by reCAPTCHA, which only
-a real browser can complete, and Kodi has none. The add-on never sees your password, only the login
-it gets back. A login through the web player instead would add that browser to your account's devices.
+The login lasts about a year. The add-on never sees your password, only the login it gets back.
 
 ## Kodi TV
 
@@ -89,9 +85,8 @@ shows them at once.
 Telekom allows only a few devices per account. *Log out* removes Kodi from the account, and
 *Settings → General → My devices* lists the account's devices so you can remove the ones no longer used.
 
-Log out before uninstalling the add-on: the device identity is kept with the add-on's data, so
-uninstalling it together with its data without logging out leaves the old device on the account
-(remove it under *My devices* from the new login, or in the provider's own apps).
+Log out before uninstalling the add-on together with its data; otherwise remove the old device under
+*My devices* from the new login, or in the provider's own apps.
 
 ## Troubleshooting
 
@@ -128,8 +123,7 @@ addresses. Switch debug logging off again afterwards: it makes the log grow fast
 
 ## License
 
-Copyright (C) 2026 lmipsum. Released under the [GNU General Public License v3.0 or later](LICENSE.txt):
-you may share and change it, and what you pass on stays under the same licence, with its source.
+Copyright (C) 2026 lmipsum. Released under the [GNU General Public License v3.0 or later](LICENSE.txt).
 
 Telekom and TV GO are trademarks of their respective owners; they are used here only to name the
 service the add-on works with.
