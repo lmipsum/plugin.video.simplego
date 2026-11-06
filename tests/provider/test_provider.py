@@ -308,20 +308,22 @@ def test_a_block_that_cannot_be_kept_leaves_no_file_behind(tmp_path, monkeypatch
 
 def test_programme_at_reads_a_kept_block_without_a_request(tmp_path, monkeypatch):
     guide, asked = _guide_client()
-    when = calendar.timegm((2026, 10, 27, 17, 30, 0))
-    path = tmp_path / ("2026-10-27-15.v%d.json.gz" % provider.guideblocks.BLOCK_VERSION)
+    # Yesterday's 15:00 block: within the archive, so fetching another block does not drop it.
+    day = time.strftime("%Y-%m-%d", time.gmtime(time.time() - 86400))
+    when = calendar.timegm(time.strptime(day + " 17:30", "%Y-%m-%d %H:%M"))
+    path = tmp_path / ("%s-15.v%d.json.gz" % (day, provider.guideblocks.BLOCK_VERSION))
     progs = [
-        {"start_time": "2026-10-27T17:00:00Z", "end_time": "2026-10-27T18:00:00Z", "content_flags": ["rn", "ts"]},
-        {"start_time": "2026-10-27T18:00:00Z", "end_time": "2026-10-27T19:00:00Z"},
+        {"start_time": day + "T17:00:00Z", "end_time": day + "T18:00:00Z", "content_flags": ["rn", "ts"]},
+        {"start_time": day + "T18:00:00Z", "end_time": day + "T19:00:00Z"},
     ]
     # Kept by the Kodi TV export for its channels only: good for those.
     provider.guideblocks.store_block(str(path), {"1001"}, {"1001": progs})
     programme, end = guide.programme_at("1001", when, str(tmp_path))
-    assert programme["content_flags"] == ["rn", "ts"] and end == calendar.timegm((2026, 10, 27, 18, 0, 0))
+    assert programme["content_flags"] == ["rn", "ts"] and end == when + 1800
     assert asked == []
     # A station it was not kept for: the whole block is fetched, and kept for every station.
     assert guide.programme_at("1002", when, str(tmp_path)) == (None, None)  # the fake block's programmes are empty
-    assert asked == [("2026-10-27", 15)]
+    assert asked == [(day, 15)]
     with gzip.open(str(path), "rt", encoding="utf-8") as f:
         assert json.loads(f.readline())["stations"] is None
 
