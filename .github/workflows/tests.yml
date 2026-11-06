@@ -41,7 +41,7 @@ jobs:
         run: ruff check . && ruff format --check .
       - name: Unit tests
         # With the coverage of the add-on's own code; below the floor fails, so it only goes up.
-        run: python -m pytest -q --cov=resources --cov-report=term-missing:skip-covered --cov-fail-under=84
+        run: python -m pytest -q --cov=resources --cov-report=term-missing:skip-covered --cov-fail-under=87
 
   addon-checker:
     name: Kodi add-on checker
