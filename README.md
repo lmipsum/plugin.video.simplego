@@ -41,15 +41,20 @@ information page, by programme type.
 ## Requirements
 
 - Kodi 20 (Nexus) or newer, with InputStream Adaptive and InputStream Helper (installed automatically).
-- A Widevine-capable device. The licence server decides which Kodi builds it accepts:
+- A Hungarian internet address.
 
-  | Platform | Status |
-  |---|---|
-  | Android TV / Google TV | Works (tested: Chromecast with Google TV, Kodi 21.2). |
-  | Windows, macOS | Does not work: the licence server refuses Kodi's desktop Widevine module (code 3099). |
+| Platform | Minimum to try | Tested on | Result |
+|---|---|---|---|
+| Android TV / Google TV | Android 5.0 | Android 14 | Works |
+| Windows | – | Windows 10 | Licence refused |
+| iOS, tvOS | – | – | No DRM support |
+| Android phone, tablet | Android 5.0 | – | Not tested |
+| Raspberry Pi | LibreELEC 11 | – | Not tested |
+| Linux PC | Kodi 20 | – | Not tested |
+| LG webOS | webOS 4.0 | – | Not tested |
+| macOS | macOS 10.14 | – | Not tested |
 
-- A Hungarian internet address. Playback from abroad stops with code 7027; a VPN or proxy works only
-  if it exits in Hungary (tested on Android with a Hungarian VPN endpoint).
+Tested on another device or version? Please [open an issue](https://github.com/lmipsum/plugin.video.simplego/issues/new/choose).
 
 ## Installation
 
