@@ -129,6 +129,7 @@ class PlayService:
         session = streamsession.Session(client, stream, proxy)
         session.keys.restart = lambda part, seconds: self._restart(session, part, seconds)
         session.reopen = lambda: self._reopen(channel_id, media_id, programme)
+        session.renew = lambda: self._renew_live(channel)
         with self._lock:
             for playing in self._sessions:
                 playing.keys.hold()
@@ -283,11 +284,19 @@ class PlayService:
         """Play a live channel again (see on_power), unless something plays already."""
         if self._player.isPlaying():
             return
+        self._play_live(channel, "after waking up")
+
+    def _renew_live(self, channel):
+        """Open a live channel again before its stream's window ends (see windowrenewal), off the service's loop."""
+        threading.Thread(target=self._play_live, args=(channel, "before its window ends"), daemon=True).start()
+
+    def _play_live(self, channel, why):
+        """Open a live channel's stream and play it; `why` says when, for the log."""
         item = self.play(channel["id"], channel["media_id"])
         if "path" not in item:
-            kodiutil.log("playing the live channel again failed: %s" % item.get("message"), xbmc.LOGWARNING)
+            kodiutil.log("playing the live channel again (%s) failed: %s" % (why, item.get("message")), xbmc.LOGWARNING)
             return
-        kodiutil.log("live channel %s plays again after waking up" % channel["id"])
+        kodiutil.log("live channel %s plays again %s" % (channel["id"], why))
         # The service hands Kodi the ready item, as at a key change (see _restart).
         self._player.play(item["path"], resolveditem.list_item(item))
 

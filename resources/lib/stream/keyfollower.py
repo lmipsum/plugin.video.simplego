@@ -94,7 +94,7 @@ class KeyFollower:
     def _live_left(self, player, now):
         """Return the seconds until the restart for the first live key change noticed is due."""
         noticed, before_edge = self.proxy.live_changes[0][:2]
-        lag = self._live_lag(player)
+        lag = live_lag(player)
         # The change is further behind the edge by the time passed since it was noticed.
         left = lag - (before_edge + now - noticed) + LIVE_RESTART_AFTER
         kodiutil.log("live key change: the player %.0f s behind the edge, restart in %.1f s" % (lag, left), xbmc.LOGDEBUG)
@@ -104,15 +104,6 @@ class KeyFollower:
         self._timer = threading.Timer(max(0, left), self._at_live_change, (player,))
         self._timer.daemon = True
         self._timer.start()
-
-    @staticmethod
-    def _live_lag(player):
-        """Return how far (seconds) the player is behind the live edge: its time to the stream's end, else LIVE_LAG."""
-        try:
-            lag = player.getTotalTime() - player.getTime()
-        except RuntimeError:
-            return LIVE_LAG
-        return lag if 0 < lag < LIVE_LAG_MAX else LIVE_LAG
 
     def _at_live_change(self, player):
         self._timer = None
@@ -190,3 +181,12 @@ class KeyFollower:
         if self._timer is not None:
             self._timer.cancel()
             self._timer = None
+
+
+def live_lag(player):
+    """Return how far (seconds) the player is behind the live edge: its time to the stream's end, else LIVE_LAG."""
+    try:
+        lag = player.getTotalTime() - player.getTime()
+    except RuntimeError:
+        return LIVE_LAG
+    return lag if 0 < lag < LIVE_LAG_MAX else LIVE_LAG

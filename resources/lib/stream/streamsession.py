@@ -17,6 +17,7 @@ from resources.lib.data import onair
 from resources.lib.net import transport
 from resources.lib.stream import keyfollower
 from resources.lib.stream import licproxy
+from resources.lib.stream import windowrenewal
 from resources.lib.util import isotime
 
 # Seconds between position saves while watching back (the web player saves every 2 s).
@@ -104,6 +105,12 @@ def programme_details(client, channel, programme):
         return None
     found = onair.on_air(client, client.station_of(channel["id"]), programme["start"])[0]
     return guidedata.details(found) if found else None
+
+
+def programme_start(client, channel, when):
+    """Return the start (a timestamp) of the programme on a channel at `when`; None if the guide does not know."""
+    programme = onair.on_air(client, client.station_of(channel["id"]), when)[0]
+    return isotime.stamp(programme["start_time"]) if programme else None
 
 
 def make_proxy(client, stream, start_at=None, part=None, unlocked=None):
@@ -241,6 +248,10 @@ class Session:
             known=_key_changes,
             key=(stream["channel"]["id"], programme["start"]) if programme else None,
         )
+        window_end = stream.get("window_end")
+        starts = functools.partial(programme_start, client, stream["channel"])
+        self.renewal = windowrenewal.WindowRenewal(window_end, starts) if window_end else None
+        self.renew = None  # renew(), set by the player: opens the live stream again (see windowrenewal)
 
     @property
     def id(self):
@@ -269,6 +280,7 @@ class Session:
         due = []
         if own:
             self._follow(player, now)
+            self._renew_if_due(player, now)
             if self.bookmark and now - self.saved >= BOOKMARK_EVERY:
                 self.saved = now
                 due.append(functools.partial(save_bookmark, self.client, self.bookmark, self.position, self.runtime))
@@ -300,6 +312,13 @@ class Session:
             self.client.beacon(self.session)
         except provider.ApiError as e:
             kodiutil.log("beacon failed: %s" % e, xbmc.LOGWARNING)
+
+    def _renew_if_due(self, player, now):
+        """Open the live stream again once its window renewal is due (see windowrenewal), once."""
+        if self.renewal and self.renew and self.renewal.is_due(now, keyfollower.live_lag(player)):
+            self.renewal = None
+            kodiutil.log("opening the live stream again before its window ends")
+            self.renew()
 
     def _follow(self, player, now):
         if self.bookmark or self.proxy.change_times:
