@@ -1,0 +1,56 @@
+name: certs
+
+# The web player's host does not send its intermediate certificate, so the add-on ships the chain
+# (resources/certs). Weekly, scripts/update_certs.py fetches and checks it; a new one comes as a pull request.
+on:
+  schedule:
+    - cron: "23 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}
+
+env:
+  BRANCH: certs/update
+
+jobs:
+  check:
+    name: Certificate chain
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: dev
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: python -m pip install -r requirements-dev.txt
+      - name: Fetch and check the chain
+        run: python scripts/update_certs.py --write
+      - name: Test a new chain
+        run: git diff --quiet || python -m pytest -q
+      - name: Open a pull request with a new chain
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet; then
+            echo "The shipped chain is current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git commit -qam "fix: the web player host's new certificate chain"
+          git push -qf origin "$BRANCH"
+          # A pull request opened with this token starts no workflows: the tests ran in the step above.
+          if [ -z "$(gh pr list --head "$BRANCH" --json number --jq '.[].number')" ]; then
+            gh pr create --base dev --head "$BRANCH" \
+              --title "The web player host's new certificate chain" \
+              --body "scripts/update_certs.py found a new chain for the web player's host, checked every signature and wrote it with its fingerprints; the tests passed in [this run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID). Closing and reopening this pull request runs them again here."
+          fi
