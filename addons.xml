@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
-<addon id="plugin.video.simplego" name="Simple GO" version="0.8.151" provider-name="lmipsum">
+<addon id="plugin.video.simplego" name="Simple GO" version="0.8.152" provider-name="lmipsum">
     <requires>
         <import addon="xbmc.python" version="3.0.1"/>
         <import addon="script.module.certifi" version="2019.9.11"/>
@@ -31,7 +31,10 @@
             <screenshot>resources/screenshots/screenshot-continue.jpg</screenshot>
             <screenshot>resources/screenshots/screenshot-guide.jpg</screenshot>
         </assets>
-        <news>v0.8.151 (2026-11-08)
+        <news>v0.8.152 (2026-11-08)
+- Live TV goes on after hours of watching, with a short pause between programmes
+
+v0.8.151 (2026-11-08)
 - Live TV refreshes about three times faster on long windows
 - Faster channel switches and menus: the channel lists in their own file
 - The sound no longer starts a few seconds off the picture after a channel switch
