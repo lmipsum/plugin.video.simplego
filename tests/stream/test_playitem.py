@@ -39,6 +39,15 @@ def test_live_starts_the_live_delay_behind_the_edge_in_each_kodis_words():
     assert dash.NO_TIMESHIFT_WINDOW > dash.LIVE_DELAY >= 16
 
 
+def test_the_live_delay_takes_picture_and_sound_back_alike():
+    from resources.lib.stream import dash
+
+    # ISA goes back floor(delay / last segment) segments per track: the picture's 4 s, the sound's in turn.
+    picture, sound_short, sound_long = 40000000 / 10000000, 191488 / 48000, 192512 / 48000
+    assert len({int(dash.LIVE_DELAY // d) for d in (picture, sound_short, sound_long)}) == 1
+    assert int(16 // sound_long) != int(16 // picture)  # what 16 did: the sound one segment late
+
+
 def test_a_programme_watched_back_carries_its_guide_details(kodi):
     programme = {
         "description": "Show",
