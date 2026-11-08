@@ -41,7 +41,7 @@ class Client:
     stream sessions; `state` what they keep (session.json), shared with every other client of the
     profile. The add-on uses the client's own attributes below, each one of a part's.
 
-    :param profile_dir: where its state (session.json) is kept
+    :param profile_dir: where its state (session.json) and channel lists (channels.json) are kept
     :param ca_bundle: certificates to verify the web player's host with (see core.Api)
     :param debug: debug(message), where the client's measurements go (state file, startup page)
     :param lock_wait: lock_wait(seconds) waits for the state file's lock, True to give up (Kodi exiting)
@@ -55,7 +55,6 @@ class Client:
     login_expires = _Part("auth")
     login_url = _Part("auth")
     login_with_refresh_token = _Part("auth")
-    logout = _Part("auth")
     valid_account = _Part("auth")
     devices = _Part("auth")
     remove_device = _Part("auth")
@@ -97,10 +96,16 @@ class Client:
         self.state = statefile.State(os.path.join(profile_dir, core.STATE_FILE), debug=debug, lock_wait=lock_wait)
         self._api = core.Api(self.state, ca_bundle, debug=debug)
         self.auth = auth.Auth(self.state, self._api)
-        self.channels = channels.Channels(self.state, self._api, self.auth)
+        self.channels = channels.Channels(self.state, self._api, self.auth, os.path.join(profile_dir, core.CHANNELS_FILE))
+        self.channels.drop_state_copy()
         self.personal = personal.Personal(self.state, self._api, self.auth, self.channels)
         self.guide = guide.Guide(self._api, self.auth)
         self.playback = playback.Playback(self.state, self._api, self.auth, self.channels)
+
+    def logout(self):
+        """Forget the login (see auth.Auth.logout) and the account's channel lists."""
+        self.auth.logout()
+        self.channels.forget_all()
 
     @property
     def ca_bundle(self):
