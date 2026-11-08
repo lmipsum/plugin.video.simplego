@@ -71,10 +71,11 @@ def fragment_protection(data):
     return pssh, uuid(data[i + 16 : i + 32])
 
 
-# Seconds behind the live edge ISA starts a live stream (its live_delay; its default and least: 16).
-# Not a cure for the sound starting up to ~3 s off the picture on some channels until a rebuffer a few
-# seconds in (Kodi's SyncStream log): 24 changed nothing there (measured 2026-11-02).
-LIVE_DELAY = 16
+# ISA's live_delay (its least: 16 s). ISA starts each track floor(delay / its last segment's length)
+# segments before its newest (AdaptiveStream.cpp, Omega). The picture's segments last 4 s, the sound's
+# 3.9893 and 4.0107 s in turn: at 16 (or 24) the sound went back one segment less after a longer one and
+# started 4 s late, until a rebuffer. Half way between, 18 takes every track back 4 segments.
+LIVE_DELAY = 18
 # Seconds of a live window kept where the programme allows no rewinding ("ts"):
 # a little over the live delay, so it still starts at its usual point.
 NO_TIMESHIFT_WINDOW = LIVE_DELAY + 4
