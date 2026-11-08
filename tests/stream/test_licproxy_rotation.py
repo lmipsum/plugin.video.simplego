@@ -134,6 +134,17 @@ def test_live_edges_are_aligned():
     assert dash.align_live_edges(out) == out
 
 
+def test_a_timeline_reads_its_starts_durations_and_repeats():
+    template = (
+        '<SegmentTemplate timescale="10" media="m/$Time$"><SegmentTimeline>'
+        '<S t="100" d="40" r="1"/><S d="38"/><S d="40" r="-1"/><S t="300" d="40"/></SegmentTimeline></SegmentTemplate>'
+    )
+    assert dash.parse_timeline(template) == (10, [(100, 40), (140, 40), (180, 38), (218, 40), (300, 40)])
+    assert dash.parse_timeline('<SegmentTemplate><S t="0" d="40"/></SegmentTemplate>', default_scale=1) == (1, [(0, 40)])
+    assert dash.parse_timeline('<SegmentTemplate timescale="10"><S t="0"/></SegmentTemplate>') == (None, [])  # no duration
+    assert dash.parse_timeline('<SegmentTemplate media="m/$Time$"/>') == (None, [])  # no timeline
+
+
 def test_a_catch_up_takes_the_keys_it_starts_with():
     # A catch-up's manifest is static and plays from its first fragment: that
     # one still has the init segments' pair A, only the end has rotated to B.
