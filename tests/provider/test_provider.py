@@ -3,6 +3,7 @@ import calendar
 import gzip
 import json
 import os
+import re
 import time
 
 import pytest
@@ -19,6 +20,7 @@ from resources.lib.provider import channels
 from resources.lib.provider import guide as guides
 from resources.lib.provider import playback
 from resources.lib.provider import statefile
+from resources.lib.util import isotime
 
 # A JWT-shaped placeholder, not a real token.
 TOKEN = "aaaa.bbbb.cccc"
@@ -264,6 +266,44 @@ def test_play_live_restarts_or_plays_back_a_programme(tmp_path):
     with pytest.raises(provider.errors.ArchiveUnavailableError):
         plays.play_live(channel, dict(over, flags=set()))
     assert len(rolls) == count  # neither opened a session
+
+
+def _window(url):
+    """Return (start, end) of a manifest URL's query, as Unix times."""
+    return tuple(isotime.stamp(re.search(r"\b%s=([^&]+)" % key, url).group(1)) for key in ("start", "end"))
+
+
+def test_full_hd_asks_the_1080p_profile_with_a_window_the_cdn_serves(tmp_path):
+    # The 1080p profile is served only for a window with a past start and an end: a programme over
+    # gets its own; live and a programme on from its beginning an end ahead, which keeps them live.
+    uri = "LIVE$11/index.mpd/Manifest?device=mgr_live_dash_sd_reach_wv3_v2&start=LIVE&end=END"
+    roll = lambda body: {"cdns": {"cdn": [{"base_uri": "https://cdn/sdash/"}]}, "manifest_uri": uri}  # noqa: E731
+    plays, _, _ = _playback(tmp_path, roll=roll)
+    channel = {"id": "11", "media_id": "LIVE$11"}
+    now = time.time()
+
+    # Off: the web profile, nothing to fall back to.
+    off = plays.play_live(channel)
+    assert "device=mgr_live_dash_sd_reach_wv3_v2&start=LIVE" in off["manifest"] and off["manifest_fallback"] is None
+
+    # Live: the 1080p device class with Widevine tier 1 (wv3 404s with it), HD_REWIND back to HD_HORIZON ahead.
+    live = plays.play_live(channel, hd=True)
+    assert "device=mgr_live_dash_sd_AndroidSTB_wv1_v2" in live["manifest"]
+    start, end = _window(live["manifest"])
+    assert abs(start - (now - playback.HD_REWIND)) < 60 and abs(end - (now + playback.HD_HORIZON)) < 60
+    assert live["manifest_fallback"] == "https://cdn/sdash/" + uri  # the web one, if this is refused
+
+    # A programme over: its own window.
+    over = {"start": "2026-11-08T00:00:00Z", "end": int(now) - 3600, "flags": {"ct"}}
+    assert _window(plays.play_live(channel, over, hd=True)["manifest"]) == (
+        isotime.stamp("2026-11-08T00:00:00Z"),
+        int(now) - 3600,
+    )
+
+    # On air, from its beginning: its start, and an end ahead.
+    on_air = {"start": isotime.iso(now - 1800), "end": int(now) + 1800, "flags": {"ct"}}
+    start, end = _window(plays.play_live(channel, on_air, hd=True)["manifest"])
+    assert start == isotime.stamp(on_air["start"]) and end > now + 3600
 
 
 def test_play_live_turns_2401_into_archive_unavailable(tmp_path):
@@ -716,3 +756,7 @@ def test_a_removed_device_is_attached_again_once_and_what_was_its_forgotten(tmp_
     with pytest.raises(provider.AuthError):
         login.call("/setting/devices/d", "F", method="DELETE", readd=False)
     assert [path for path, _ in api.sent] == ["/setting/devices/d"]
+
+
+def test_full_hd_leaves_a_manifest_without_a_device_profile_as_it_is():
+    assert playback._hd_manifest("https://cdn/LIVE$1/index.mpd/Manifest?start=LIVE", None).endswith("?start=LIVE")
