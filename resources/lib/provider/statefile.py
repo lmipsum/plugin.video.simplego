@@ -60,55 +60,42 @@ class State(dict):
         Several clients share the file and Keycloak rotates the refresh token on every
         renewal, so writing back a whole older copy would undo another renewal and log out.
         """
-        self._save()
-
-    def _save(self, on_disk=None):
-        """Save (see save); on_disk: the file's content, known unchanged since this client last read or wrote it."""
         began = time.time()
         with self.lock():
             locked = time.time()
-            text = None
-            if on_disk is None:
-                text = self._read()
-                on_disk = parse(text)
+            text = self._read()
+            current = parse(text)
             changed = False
             for key in set(self) | set(self._saved):
                 if key not in self:
-                    if key in on_disk:
-                        del on_disk[key]
+                    if key in current:
+                        del current[key]
                         changed = True
                 elif key not in self._saved or self[key] != self._saved[key]:
-                    on_disk[key] = self[key]
+                    current[key] = self[key]
                     changed = True
             if changed:
                 os.makedirs(os.path.dirname(self._path), exist_ok=True)
                 # dumps+write is 4x faster than json.dump(); re-parsing beats copy.deepcopy.
-                text = json.dumps(on_disk)
+                text = json.dumps(current)
                 atomicfile.write(self._path, text)
-            if text is not None:  # else nothing read, nothing changed: this client has the file's content already
-                self.clear()
-                self.update(on_disk)
-                self._saved = parse(text)
+            self.clear()
+            self.update(current)
+            self._saved = parse(text)
         self._debug(
-            "state saved: %s, %s in %d ms (lock wait %d ms)"
-            % (
-                "%d kB" % (len(text) // 1024) if text is not None else "not read again",
-                "written" if changed else "unchanged",
-                (time.time() - locked) * 1000,
-                (locked - began) * 1000,
-            )
+            "state saved: %d kB, %s in %d ms (lock wait %d ms)"
+            % (len(text) // 1024, "written" if changed else "unchanged", (time.time() - locked) * 1000, (locked - began) * 1000)
         )
 
     def change(self, edit):
         """Change the state as edit(state) does, on what the file has now (other clients' writes taken up), and save.
 
         Under the lock: a list several clients add to (the open sessions) must not lose another's entry.
-        Nobody else writes the file while it is held, so the second save need not read it again.
         """
         with self.lock():
             self.save()
             edit(self)
-            self._save(on_disk=self._saved)
+            self.save()
 
     def keep_only(self, keys):
         """Drop every key but these, and save (a logout: the device's identity stays)."""

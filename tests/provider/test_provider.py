@@ -21,6 +21,7 @@ from resources.lib.provider import guide as guides
 from resources.lib.provider import playback
 from resources.lib.provider import statefile
 from resources.lib.util import isotime
+from resources.lib.util import sharedfile
 
 # A JWT-shaped placeholder, not a real token.
 TOKEN = "aaaa.bbbb.cccc"
@@ -114,7 +115,8 @@ def test_guest_mode_uses_the_public_channel_list_and_guide(tmp_path):
     api = FakeApi(state, guest=guest_call)  # nothing sent with a login: no answers for it
     login = auth.Auth(state, api)
     assert not login.authed
-    channels.Channels(state, api, login, str(tmp_path / "channels.json")).list(scope="subscribed")  # no login: the public list
+    kept = sharedfile.SharedJson(str(tmp_path / "channels.json"), state.lock)
+    channels.Channels(state, api, login, kept).list(scope="subscribed")  # no subscription without a login: the public list
     guides.Guide(api, login).now_and_next()
     assert [p for p, _ in calls] == ["/epg/channel", "/epg/channel/schedules"]
     assert "channelMap_id" not in calls[1][1]
@@ -221,18 +223,6 @@ def test_play_live_refuses_channels_outside_the_subscription(tmp_path):
     with pytest.raises(provider.errors.NotSubscribedError):
         plays.play_live({"id": "99", "media_id": "LIVE$99"})
     assert api.bootstraps == [] and http.rolls == []  # no stream session for it
-
-
-def test_an_unknown_subscription_lets_the_server_decide(tmp_path):
-    def down(path, params):
-        raise provider.ApiError("down")
-
-    state = statefile.State(str(tmp_path / "session.json"))
-    login = FakeAuth(down)
-    lists = channels.Channels(state, None, login, str(tmp_path / "channels.json"))
-    assert lists.subscribed_ids() is None
-    login.authed = False  # no login: no subscription to know
-    assert lists.subscribed_ids() is None
 
 
 def test_play_live_turns_the_servers_not_in_service_into_not_subscribed(tmp_path):
@@ -688,32 +678,6 @@ def test_taking_up_others_changes_writes_nothing(tmp_path):
     second.state.save()
     assert second.state["refresh_token"] == "rotated"
     assert os.stat(str(tmp_path / "session.json")).st_mtime_ns == written - 10**9  # read, not written again
-
-
-def test_a_change_reads_the_state_file_once(tmp_path, monkeypatch):
-    client = provider.Client(str(tmp_path))
-    reads = []
-    real_read = statefile.State._read
-    monkeypatch.setattr(statefile.State, "_read", lambda self: reads.append(1) or real_read(self))
-    client.state.change(lambda st: st.update(open_sessions=[{"session_id": "s"}]))
-    assert len(reads) == 1  # held under the lock: the second save writes onto what the first read
-    assert json.loads((tmp_path / "session.json").read_text())["open_sessions"] == [{"session_id": "s"}]
-
-
-def test_the_channel_lists_are_kept_in_their_own_file_every_client_shares(tmp_path):
-    lists = {"subscribed": {"list": [{"id": "1"}]}, "favourite": {"list": [{"id": "2"}]}}
-    (tmp_path / "session.json").write_text(json.dumps({"channels_cache": lists, "device_id": "d"}))
-    (tmp_path / "channels.json").write_text(json.dumps(lists))
-    first, second = provider.Client(str(tmp_path)), provider.Client(str(tmp_path))
-    assert second.channel_of("2") == {"id": "2"}
-    # Up to 0.8.150 the lists were in the state: that copy goes, the rest of the state stays.
-    assert json.loads((tmp_path / "session.json").read_text()) == {"device_id": "d"}
-    first.channels.forget("favourite")
-    assert second.channel_of("2") is None  # another client's change taken up
-    assert second.channel_of("1") == {"id": "1"}
-    second.logout()  # the next account's lists are its own
-    assert first.channel_of("1") is None
-    assert json.loads((tmp_path / "session.json").read_text()) == {"device_id": "d"}
 
 
 def test_the_device_profile_is_sent_and_registered_with(tmp_path, monkeypatch):

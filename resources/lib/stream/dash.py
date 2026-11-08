@@ -94,12 +94,12 @@ def parse_timeline(template, default_scale=None):
         return None, []
     segments, now = [], 0
     for attributes in entries:
-        s = dict(TIMELINE_ATTRIBUTE.findall(attributes))
-        if "d" not in s:
+        entry = dict(TIMELINE_ATTRIBUTE.findall(attributes))
+        if "d" not in entry:
             return None, []
-        duration = int(s["d"])
-        now = int(s["t"]) if "t" in s else now
-        for _ in range(1 + max(int(s.get("r", 0)), 0)):
+        duration = int(entry["d"])
+        now = int(entry["t"]) if "t" in entry else now
+        for _ in range(1 + max(int(entry.get("r", 0)), 0)):
             segments.append((now, duration))
             now += duration
     return scale, segments

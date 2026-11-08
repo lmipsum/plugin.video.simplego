@@ -9,6 +9,7 @@ from resources.lib.provider import guide
 from resources.lib.provider import personal
 from resources.lib.provider import playback
 from resources.lib.provider import statefile
+from resources.lib.util import sharedfile
 
 
 class _Part:
@@ -96,7 +97,8 @@ class Client:
         self.state = statefile.State(os.path.join(profile_dir, core.STATE_FILE), debug=debug, lock_wait=lock_wait)
         self._api = core.Api(self.state, ca_bundle, debug=debug)
         self.auth = auth.Auth(self.state, self._api)
-        self.channels = channels.Channels(self.state, self._api, self.auth, os.path.join(profile_dir, core.CHANNELS_FILE))
+        kept_lists = sharedfile.SharedJson(os.path.join(profile_dir, core.CHANNELS_FILE), self.state.lock)
+        self.channels = channels.Channels(self.state, self._api, self.auth, kept_lists)
         self.channels.drop_state_copy()
         self.personal = personal.Personal(self.state, self._api, self.auth, self.channels)
         self.guide = guide.Guide(self._api, self.auth)
