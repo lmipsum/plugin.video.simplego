@@ -14,12 +14,12 @@ from resources.lib.provider import core
 from resources.lib.provider import errors
 from resources.lib.util import isotime
 
-# Full HD (see _hd_manifest): the CDN's 1080p profile is served for this device class and Widevine tier,
-# and only for a window given with a start in the past and an end. Live starts HD_REWIND back (its rewind,
-# as the web stream's); an end HD_HORIZON ahead keeps the manifest live (one over about 8 hours is refused).
-HD_DEVICE_CLASS = "AndroidSTB_wv1"
-HD_REWIND = 15 * 60
-HD_HORIZON = 6 * 3600
+# Full HD (see _ask_full_hd): the CDN's 1080p profile is served for this device class and Widevine tier,
+# and only for a window given with a start in the past and an end. Live starts FULL_HD_REWIND back (its rewind,
+# as the web stream's); an end FULL_HD_HORIZON ahead keeps the manifest live (one over about 8 hours is refused).
+FULL_HD_DEVICE_CLASS = "AndroidSTB_wv1"
+FULL_HD_REWIND = 15 * 60
+FULL_HD_HORIZON = 6 * 3600
 # The device class and Widevine tier in a manifest URL's device= profile, e.g. mgr_live_dash_sd_reach_wv3_v2.
 DEVICE_CLASS = re.compile(r"(mgr_(?:live|vod)_dash_[a-z]+_)[A-Za-z0-9]+_wv\d+")
 
@@ -136,14 +136,14 @@ class Playback:
         token = self._auth.valid_access_token(ahead) + json.dumps(DEVICE_PROFILE, sort_keys=True)
         return hashlib.sha256(token.encode()).hexdigest()
 
-    def play_live(self, channel, programme=None, laps=None, hd=False):
+    def play_live(self, channel, programme=None, laps=None, full_hd=False):
         """Open a live session.
 
         :param channel: an entry of channels.Channels.list
         :param programme: (guidedata.from_param) play it from its beginning: restarted in
             the live session if still on air, else a catch-up session for its start time
         :param laps: laps(step) after each step (see resources.lib.util.laps)
-        :param hd: ask for the Full HD (1080p) profile, the web one kept as the fallback (see _hd_manifest)
+        :param full_hd: ask for the Full HD (1080p) profile, the web one kept as the fallback (see _ask_full_hd)
         :return: manifest URL, type and Widevine licence details
         """
         laps = laps or (lambda step: None)
@@ -181,7 +181,7 @@ class Playback:
         if restart:
             # From the programme's start the manifest keeps the whole programme in its window.
             web_manifest = web_manifest.replace("start=LIVE", "start=" + programme["start"], 1)
-        manifest = _hd_manifest(web_manifest, programme) if hd else web_manifest
+        manifest = _ask_full_hd(web_manifest, programme) if full_hd else web_manifest
         # As the web player does: the roll's query and headers verbatim, raw Widevine body.
         lic_params = "mediaId=%s&ownerUid=%s&sessionId=%s&enablelowlatency=false" % (
             quote(channel["media_id"], safe=""),
@@ -194,8 +194,7 @@ class Playback:
         laps("certificate")
         return {
             "manifest": manifest,
-            # Played instead if the CDN refuses the Full HD one.
-            "manifest_fallback": web_manifest if hd else None,
+            "manifest_fallback": web_manifest if full_hd else None,
             "type": (roll.get("package_type") or "dash").lower(),
             "license_url": license_url,
             "license_headers": license_headers,
@@ -312,12 +311,12 @@ class Playback:
                 self._forget_session(s)
 
 
-def _hd_manifest(manifest, programme):
+def _ask_full_hd(manifest, programme):
     """Return the manifest URL asking for the Full HD (1080p) profile; the web profile's stops at 720p.
 
     The URL is unsigned, so its query alone picks the profile, which the CDN serves only with a past start
     and an end. A programme over: its own window (a static manifest). Live, and a programme still on from its
-    beginning: an end HD_HORIZON ahead (a live manifest), live starting HD_REWIND back. A URL without a
+    beginning: an end FULL_HD_HORIZON ahead (a live manifest), live starting FULL_HD_REWIND back. A URL without a
     device profile is left as it is.
     """
     base, _, query = manifest.partition("?")
@@ -328,8 +327,8 @@ def _hd_manifest(manifest, programme):
     if programme and programme["end"] <= now:
         start, end = programme["start"], isotime.iso(programme["end"])
     else:
-        start = programme["start"] if programme else isotime.iso(now - HD_REWIND)
-        end = isotime.iso(now + HD_HORIZON)
-    params["device"] = DEVICE_CLASS.sub(r"\g<1>" + HD_DEVICE_CLASS, params["device"])
+        start = programme["start"] if programme else isotime.iso(now - FULL_HD_REWIND)
+        end = isotime.iso(now + FULL_HD_HORIZON)
+    params["device"] = DEVICE_CLASS.sub(r"\g<1>" + FULL_HD_DEVICE_CLASS, params["device"])
     params["start"], params["end"] = start, end
     return base + "?" + urlencode(params, safe=":")

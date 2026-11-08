@@ -15,12 +15,12 @@ class SharedJson:
     def __init__(self, path, lock):
         self._path = path
         self._lock = lock
-        self._content = None  # as last read or written, and the file's version then (see read)
+        self._content = None
         self._version = None
 
     def read(self):
         """Return the content ({} if none); not to be changed in place (see change)."""
-        version = _version(self._path)
+        version = _read_version(self._path)
         if self._content is None or version != self._version:
             self._content, self._version = _read(self._path), version
         return self._content
@@ -31,14 +31,14 @@ class SharedJson:
             content = _read(self._path)
             edit(content)
             atomicfile.write_json(self._path, content)
-            self._content, self._version = content, _version(self._path)
+            self._content, self._version = content, _read_version(self._path)
 
 
 def _read(path):
     return atomicfile.read_json(path, {}) or {}
 
 
-def _version(path):
+def _read_version(path):
     """Return what tells a file's versions apart (written whole as a new file: its inode changes); None if missing."""
     try:
         st = os.stat(path)

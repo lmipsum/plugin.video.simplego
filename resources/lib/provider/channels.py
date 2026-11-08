@@ -51,10 +51,8 @@ class Channels:
         self._kept.change(lambda kept: kept.pop(scope, None))
 
     def drop_state_copy(self):
-        """Drop the lists that versions up to 0.8.150 kept in the state (they made its every save slow).
-
-        For an update from those versions only: to be deleted once they are a few releases behind.
-        """
+        """Drop the lists that versions up to 0.8.150 kept in the state (they made its every save slow)."""
+        # TODO(#21): delete once updates from 0.8.150 or older are a few releases behind.
         if "channels_cache" in self._state:
             del self._state["channels_cache"]
             self._state.save()

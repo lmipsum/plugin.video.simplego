@@ -13,8 +13,8 @@ WIDEVINE_SYSTEM_ID = bytes.fromhex("edef8ba979d64acea3c827dcd51d21ed")
 # The provider's MPDs: self-closing Representation tags inside each AdaptationSet.
 ADAPTATION_SET = re.compile(r"<AdaptationSet\b.*?</AdaptationSet>", re.S)
 REPRESENTATION = re.compile(r"<Representation\b[^>]*/>")
-# A SegmentTimeline's entries and their start (t), duration (d) and repeat count (r): one pass per entry,
-# as a live timeline grows by one entry per segment (audio's are not folded into r).
+# Compiled once and one pass per timeline entry: a live timeline grows by one entry per segment, the
+# sound's not folded into r, and every refresh reads them all.
 TIMESCALE = re.compile(r'\btimescale="(\d+)"')
 TIMELINE_ENTRY = re.compile(r"<S\b([^>]*)/>")
 TIMELINE_ATTRIBUTE = re.compile(r'\b([tdr])="(-?\d+)"')
@@ -72,9 +72,10 @@ def fragment_protection(data):
 
 
 # ISA's live_delay (its least: 16 s). ISA starts each track floor(delay / its last segment's length)
-# segments before its newest (AdaptiveStream.cpp, Omega). The picture's segments last 4 s, the sound's
-# 3.9893 and 4.0107 s in turn: at 16 (or 24) the sound went back one segment less after a longer one and
-# started 4 s late, until a rebuffer. Half way between, 18 takes every track back 4 segments.
+# segments before its newest (https://github.com/xbmc/inputstream.adaptive/blob/Omega/src/common/AdaptiveStream.cpp).
+# The picture's segments last 4 s, the sound's 3.9893 and 4.0107 s in turn: at 16 (or 24) the sound went
+# back one segment less after a longer one and started 4 s late, until a rebuffer. Half way between,
+# 18 takes every track back 4 segments.
 LIVE_DELAY = 18
 # Seconds of a live window kept where the programme allows no rewinding ("ts"):
 # a little over the live delay, so it still starts at its usual point.
