@@ -30,7 +30,12 @@
             <screenshot>resources/screenshots/screenshot-continue.jpg</screenshot>
             <screenshot>resources/screenshots/screenshot-guide.jpg</screenshot>
         </assets>
-        <news>v0.8.150 (2026-11-08)
+        <news>v0.8.151 (2026-11-08)
+- Live TV refreshes about three times faster on long windows
+- Faster channel switches and menus: the channel lists in their own file
+- The sound no longer starts a few seconds off the picture after a channel switch
+
+v0.8.150 (2026-11-08)
 - The repository connects right after its first install from the file manager
 - Play live, from the beginning and watching back in Full HD (1080p) where offered
 
