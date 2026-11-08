@@ -37,7 +37,7 @@ def test_cancelling_where_to_resume_plays_nothing_and_closes_the_session(kodi, m
         def bookmarks(self):
             return [{"id": info["id"], "time_seconds": 600, "runtime_seconds": 3600}]
 
-        def play_live(self, channel, programme, laps, hd=False):
+        def play_live(self, channel, programme, laps, full_hd=False):
             return {"session": {"session_id": "S1"}}
 
         def channel_of(self, channel_id):

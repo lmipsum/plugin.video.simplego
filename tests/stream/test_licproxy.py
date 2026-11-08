@@ -310,7 +310,7 @@ def _proxy(http, logged, served=False):
         http, "https://lic", {}, logged.append, manifest_url="https://cdn/1080", fallback_url="https://cdn/web"
     ).start()
     proxy._keys.rewrite = lambda text, url: manifest.Rewritten(text, "")
-    proxy._served = served
+    proxy._manifest_served = served
     return proxy
 
 

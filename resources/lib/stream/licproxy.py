@@ -69,7 +69,7 @@ class LicenceProxy:
         self._manifest_url = manifest_url
         self._fallback_url = fallback_url
         self._fallback_lock = threading.Lock()
-        self._served = False  # a manifest went to ISA: the stream is not switched any more
+        self._manifest_served = False
         self._stop_when = stop_when
         self._static = None  # a static manifest as served, see _manifest
         self._keys_lock = threading.Lock()
@@ -206,7 +206,7 @@ class LicenceProxy:
                         rewritten.steps,
                     )
                 )
-            self._served = True
+            self._manifest_served = True
             return localserver.Response(200, mpd, "application/dash+xml")
         except Exception as e:  # noqa: BLE001 - ISA gets an answer whatever failed, not a dropped connection
             self._log("manifest proxy failed: %s" % e)
@@ -215,7 +215,7 @@ class LicenceProxy:
     def _fetch_manifest(self):
         """Return the provider's manifest: the fallback one for good if the first is refused before any is served."""
         r = self._http.get(self._manifest_url, timeout=20)
-        if self._fallback_url and not self._served and r.status_code >= 400:
+        if self._fallback_url and not self._manifest_served and r.status_code >= 400:
             # The prefetch and ISA's first request may both get here: one switches, both fetch the fallback.
             with self._fallback_lock:
                 if self._fallback_url:
