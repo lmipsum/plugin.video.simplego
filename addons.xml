@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
-<addon id="plugin.video.simplego" name="Simple GO" version="0.8.143" provider-name="lmipsum">
+<addon id="plugin.video.simplego" name="Simple GO" version="0.8.150" provider-name="lmipsum">
     <requires>
         <import addon="xbmc.python" version="3.0.1"/>
         <import addon="script.module.certifi" version="2019.9.11"/>
@@ -31,7 +31,11 @@
             <screenshot>resources/screenshots/screenshot-continue.jpg</screenshot>
             <screenshot>resources/screenshots/screenshot-guide.jpg</screenshot>
         </assets>
-        <news>v0.8.143 (2026-11-02)
+        <news>v0.8.150 (2026-11-08)
+- The repository connects right after its first install from the file manager
+- Play live, from the beginning and watching back in Full HD (1080p) where offered
+
+v0.8.143 (2026-11-02)
 - No longer trust root certificates that certifi dropped as compromised
 - List the repository zip in Kodi's file manager
 
