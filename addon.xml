@@ -30,7 +30,10 @@
             <screenshot>resources/screenshots/screenshot-continue.jpg</screenshot>
             <screenshot>resources/screenshots/screenshot-guide.jpg</screenshot>
         </assets>
-        <news>v0.8.151 (2026-11-08)
+        <news>v0.8.152 (2026-11-08)
+- Live TV goes on after hours of watching, with a short pause between programmes
+
+v0.8.151 (2026-11-08)
 - Live TV refreshes about three times faster on long windows
 - Faster channel switches and menus: the channel lists in their own file
 - The sound no longer starts a few seconds off the picture after a channel switch
