@@ -114,7 +114,7 @@ class ContinueViews:
         """Log whether each row's airing is still on catch-up by its programme's airings.
 
         Whether those are the provider's word on it the log tells: compared with what playing the row says.
-        TODO: show a row as expired (and count them in the main menu) once the log shows these answers right.
+        TODO(#4): show a row as expired (and count them in the main menu) once the log shows these answers right.
         """
         for mark, state in listed:
             if not mark.get("program_id"):
