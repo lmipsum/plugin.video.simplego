@@ -42,6 +42,8 @@ TIMEOUT = 20
 CONFIG_TTL = 24 * 3600
 ACCOUNT_TTL = 6 * 3600
 STATE_FILE = "session.json"
+# The channel lists, kept apart from the state: nine tenths of it, read and compared at its every save.
+CHANNELS_FILE = "channels.json"
 CHANNELS_TTL = 3600
 # Line-ups change only with the account's channel map; favourites and order (editable in
 # the provider's apps) keep CHANNELS_TTL.
