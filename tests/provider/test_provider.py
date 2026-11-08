@@ -263,9 +263,7 @@ def _window(url):
     return tuple(isotime.stamp(re.search(r"\b%s=([^&]+)" % key, url).group(1)) for key in ("start", "end"))
 
 
-def test_full_hd_asks_the_1080p_profile_with_a_window_the_cdn_serves(tmp_path):
-    # The 1080p profile is served only for a window with a past start and an end: a programme over
-    # gets its own; live and a programme on from its beginning an end ahead, which keeps them live.
+def test_full_hd_asks_the_1080p_profile(tmp_path):
     uri = "LIVE$11/index.mpd/Manifest?device=mgr_live_dash_sd_reach_wv3_v2&start=LIVE&end=END"
     roll = lambda body: {"cdns": {"cdn": [{"base_uri": "https://cdn/sdash/"}]}, "manifest_uri": uri}  # noqa: E731
     plays, _, _ = _playback(tmp_path, roll=roll)
@@ -276,7 +274,7 @@ def test_full_hd_asks_the_1080p_profile_with_a_window_the_cdn_serves(tmp_path):
     off = plays.play_live(channel)
     assert "device=mgr_live_dash_sd_reach_wv3_v2&start=LIVE" in off["manifest"] and off["manifest_fallback"] is None
 
-    # Live: the 1080p device class with Widevine tier 1 (wv3 404s with it), FULL_HD_REWIND back to FULL_HD_HORIZON ahead.
+    # Live: FULL_HD_REWIND back to FULL_HD_HORIZON ahead.
     live = plays.play_live(channel, full_hd=True)
     assert "device=mgr_live_dash_sd_AndroidSTB_wv1_v2" in live["manifest"]
     start, end = _window(live["manifest"])

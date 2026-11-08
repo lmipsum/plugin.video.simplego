@@ -14,13 +14,10 @@ from resources.lib.provider import core
 from resources.lib.provider import errors
 from resources.lib.util import isotime
 
-# Full HD (see _ask_full_hd): the CDN's 1080p profile is served for this device class and Widevine tier,
-# and only for a window given with a start in the past and an end. Live starts FULL_HD_REWIND back (its rewind,
-# as the web stream's); an end FULL_HD_HORIZON ahead keeps the manifest live (one over about 8 hours is refused).
+# Full HD (see _ask_full_hd).
 FULL_HD_DEVICE_CLASS = "AndroidSTB_wv1"
 FULL_HD_REWIND = 15 * 60
 FULL_HD_HORIZON = 6 * 3600
-# The device class and Widevine tier in a manifest URL's device= profile, e.g. mgr_live_dash_sd_reach_wv3_v2.
 DEVICE_CLASS = re.compile(r"(mgr_(?:live|vod)_dash_[a-z]+_)[A-Za-z0-9]+_wv\d+")
 
 
@@ -312,13 +309,7 @@ class Playback:
 
 
 def _ask_full_hd(manifest, programme):
-    """Return the manifest URL asking for the Full HD (1080p) profile; the web profile's stops at 720p.
-
-    The URL is unsigned, so its query alone picks the profile, which the CDN serves only with a past start
-    and an end. A programme over: its own window (a static manifest). Live, and a programme still on from its
-    beginning: an end FULL_HD_HORIZON ahead (a live manifest), live starting FULL_HD_REWIND back. A URL without a
-    device profile is left as it is.
-    """
+    """Return the manifest URL for Full HD (1080p); as it is without a device profile."""
     base, _, query = manifest.partition("?")
     params = dict(parse_qsl(query))
     if not DEVICE_CLASS.search(params.get("device", "")):
