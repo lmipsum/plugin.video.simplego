@@ -13,6 +13,11 @@ WIDEVINE_SYSTEM_ID = bytes.fromhex("edef8ba979d64acea3c827dcd51d21ed")
 # The provider's MPDs: self-closing Representation tags inside each AdaptationSet.
 ADAPTATION_SET = re.compile(r"<AdaptationSet\b.*?</AdaptationSet>", re.S)
 REPRESENTATION = re.compile(r"<Representation\b[^>]*/>")
+# A SegmentTimeline's entries and their start (t), duration (d) and repeat count (r): one pass per entry,
+# as a live timeline grows by one entry per segment (audio's are not folded into r).
+TIMESCALE = re.compile(r'\btimescale="(\d+)"')
+TIMELINE_ENTRY = re.compile(r"<S\b([^>]*)/>")
+TIMELINE_ATTRIBUTE = re.compile(r'\b([tdr])="(-?\d+)"')
 
 
 def adaptation_sets(xml):
@@ -81,20 +86,21 @@ def parse_timeline(template, default_scale=None):
     Only the first <S> need carry a start time (audio has many entries of
     slightly different durations), so the whole timeline is walked.
     """
-    scale = re.search(r'\btimescale="(\d+)"', template)
+    scale = TIMESCALE.search(template)
     scale = int(scale.group(1)) if scale else default_scale
-    entries = re.findall(r"<S\b[^>]*/>", template)
+    entries = TIMELINE_ENTRY.findall(template)
     if not scale or not entries:
         return None, []
     segments, now = [], 0
-    for s in entries:
-        start, duration, repeat = (re.search(r'\b%s="(-?\d+)"' % k, s) for k in ("t", "d", "r"))
-        if not duration:
+    for attributes in entries:
+        s = dict(TIMELINE_ATTRIBUTE.findall(attributes))
+        if "d" not in s:
             return None, []
-        now = int(start.group(1)) if start else now
-        for _ in range(1 + (int(repeat.group(1)) if repeat and int(repeat.group(1)) > 0 else 0)):
-            segments.append((now, int(duration.group(1))))
-            now += int(duration.group(1))
+        duration = int(s["d"])
+        now = int(s["t"]) if "t" in s else now
+        for _ in range(1 + max(int(s.get("r", 0)), 0)):
+            segments.append((now, duration))
+            now += duration
     return scale, segments
 
 
