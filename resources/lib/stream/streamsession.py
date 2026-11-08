@@ -47,7 +47,8 @@ def start_stream(client, channel, programme=None, laps=None):
     unlocked = parental.gate(client, channel, programme)
     laps("parental")
     ahead = _positions_ahead(client, programme)
-    stream = client.play_live(channel, programme, laps)
+    stream = client.play_live(channel, programme, laps, kodiutil.addon().getSettingBool("full_hd"))
+    kodiutil.log("stream manifest: %s" % stream.get("manifest"), xbmc.LOGDEBUG)
     stream["channel"], stream["programme"] = channel, programme
     stream["logo"] = (client.channel_of(channel["id"]) or {}).get("logo")
     stream["details"] = programme_details(client, channel, programme)
@@ -129,6 +130,7 @@ def make_proxy(client, stream, start_at=None, part=None, unlocked=None):
         debug=lambda msg: kodiutil.log(msg, xbmc.LOGDEBUG),
         on_refused=licence_refused,
         manifest_url=stream["manifest"],
+        fallback_url=stream.get("manifest_fallback"),
         audio_langs=audio_languages(),
         from_start=bool(stream.get("from_start")),
         no_timeshift=onair.on_air_check(client, station, lambda p: "ts" in (p.get("content_flags") or [])),

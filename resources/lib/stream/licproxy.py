@@ -31,6 +31,8 @@ class LicenceProxy:
     :param log: log(msg), where the proxy's messages go
     :param on_refused: on_refused(code) once the licence server refused a challenge
     :param manifest_url: the provider's manifest, served rewritten at /manifest
+    :param fallback_url: a manifest to play instead if manifest_url is refused before the first one is served
+        (the Full HD profile): never switched to later, which would change the stream under the player
     :param stop_when: asked at every manifest refresh: True ends the stream (e.g. the parental lock)
     :param key_changes: found_changes from an earlier stream of this programme (see ManifestRewriter)
     The rest: see manifest.ManifestRewriter.
@@ -44,6 +46,7 @@ class LicenceProxy:
         log,
         on_refused=None,
         manifest_url=None,
+        fallback_url=None,
         audio_langs=(),
         debug=None,
         from_start=False,
@@ -64,6 +67,9 @@ class LicenceProxy:
         # with the refusal at once ends playback instead of hanging.
         self._refused = None
         self._manifest_url = manifest_url
+        self._fallback_url = fallback_url
+        self._fallback_lock = threading.Lock()
+        self._served = False  # a manifest went to ISA: the stream is not switched any more
         self._stop_when = stop_when
         self._static = None  # a static manifest as served, see _manifest
         self._keys_lock = threading.Lock()
@@ -174,8 +180,7 @@ class LicenceProxy:
             return localserver.Response(200, self._static, "application/dash+xml")
         started = time.time()
         try:
-            r = self._http.get(self._manifest_url, timeout=20)
-            r.raise_for_status()
+            r = self._fetch_manifest()
             fetched = time.time()
             # One reader of the keys at a time: ISA's first request waits for a prefetch.
             with self._keys_lock:
@@ -201,10 +206,24 @@ class LicenceProxy:
                         rewritten.steps,
                     )
                 )
+            self._served = True
             return localserver.Response(200, mpd, "application/dash+xml")
         except Exception as e:  # noqa: BLE001 - ISA gets an answer whatever failed, not a dropped connection
             self._log("manifest proxy failed: %s" % e)
             return localserver.Response(502, b"", "text/plain")
+
+    def _fetch_manifest(self):
+        """Return the provider's manifest: the fallback one for good if the first is refused before any is served."""
+        r = self._http.get(self._manifest_url, timeout=20)
+        if self._fallback_url and not self._served and r.status_code >= 400:
+            # The prefetch and ISA's first request may both get here: one switches, both fetch the fallback.
+            with self._fallback_lock:
+                if self._fallback_url:
+                    self._log("Full HD profile refused (HTTP %d): playing the usual one" % r.status_code)
+                    self._manifest_url, self._fallback_url = self._fallback_url, None
+            r = self._http.get(self._manifest_url, timeout=20)
+        r.raise_for_status()
+        return r
 
     def prefetch(self):
         """Read the keys now, so the manifest is ready when ISA asks for it a moment later."""

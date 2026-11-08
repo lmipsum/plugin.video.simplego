@@ -595,3 +595,15 @@ msgstr ""
 msgctxt "#30264"
 msgid "Remove it from Continue watching?"
 msgstr ""
+
+msgctxt "#30265"
+msgid "Picture quality"
+msgstr ""
+
+msgctxt "#30266"
+msgid "Full HD (1080p)"
+msgstr ""
+
+msgctxt "#30267"
+msgid "Where the service offers it. Off: 720p."
+msgstr ""

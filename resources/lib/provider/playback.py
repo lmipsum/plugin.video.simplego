@@ -3,13 +3,25 @@
 import base64
 import hashlib
 import json
+import re
 import time
 import uuid
+from urllib.parse import parse_qsl
 from urllib.parse import quote
+from urllib.parse import urlencode
 
 from resources.lib.provider import core
 from resources.lib.provider import errors
 from resources.lib.util import isotime
+
+# Full HD (see _hd_manifest): the CDN's 1080p profile is served for this device class and Widevine tier,
+# and only for a window given with a start in the past and an end. Live starts HD_REWIND back (its rewind,
+# as the web stream's); an end HD_HORIZON ahead keeps the manifest live (one over about 8 hours is refused).
+HD_DEVICE_CLASS = "AndroidSTB_wv1"
+HD_REWIND = 15 * 60
+HD_HORIZON = 6 * 3600
+# The device class and Widevine tier in a manifest URL's device= profile, e.g. mgr_live_dash_sd_reach_wv3_v2.
+DEVICE_CLASS = re.compile(r"(mgr_(?:live|vod)_dash_[a-z]+_)[A-Za-z0-9]+_wv\d+")
 
 
 def unwrap_service_certificate(msg):
@@ -124,13 +136,14 @@ class Playback:
         token = self._auth.valid_access_token(ahead) + json.dumps(DEVICE_PROFILE, sort_keys=True)
         return hashlib.sha256(token.encode()).hexdigest()
 
-    def play_live(self, channel, programme=None, laps=None):
+    def play_live(self, channel, programme=None, laps=None, hd=False):
         """Open a live session.
 
         :param channel: an entry of channels.Channels.list
         :param programme: (guidedata.from_param) play it from its beginning: restarted in
             the live session if still on air, else a catch-up session for its start time
         :param laps: laps(step) after each step (see resources.lib.util.laps)
+        :param hd: ask for the Full HD (1080p) profile, the web one kept as the fallback (see _hd_manifest)
         :return: manifest URL, type and Widevine licence details
         """
         laps = laps or (lambda step: None)
@@ -164,10 +177,11 @@ class Playback:
         cdn = (roll.get("cdns") or {}).get("cdn") or []
         if not cdn or not roll.get("manifest_uri"):
             raise errors.ApiError("roll response has no manifest: %s" % json.dumps(roll)[:500])
-        manifest = cdn[0]["base_uri"].rstrip("/") + "/" + roll["manifest_uri"].lstrip("/")
+        web_manifest = cdn[0]["base_uri"].rstrip("/") + "/" + roll["manifest_uri"].lstrip("/")
         if restart:
             # From the programme's start the manifest keeps the whole programme in its window.
-            manifest = manifest.replace("start=LIVE", "start=" + programme["start"], 1)
+            web_manifest = web_manifest.replace("start=LIVE", "start=" + programme["start"], 1)
+        manifest = _hd_manifest(web_manifest, programme) if hd else web_manifest
         # As the web player does: the roll's query and headers verbatim, raw Widevine body.
         lic_params = "mediaId=%s&ownerUid=%s&sessionId=%s&enablelowlatency=false" % (
             quote(channel["media_id"], safe=""),
@@ -180,6 +194,8 @@ class Playback:
         laps("certificate")
         return {
             "manifest": manifest,
+            # Played instead if the CDN refuses the Full HD one.
+            "manifest_fallback": web_manifest if hd else None,
             "type": (roll.get("package_type") or "dash").lower(),
             "license_url": license_url,
             "license_headers": license_headers,
@@ -294,3 +310,26 @@ class Playback:
             except errors.ApiError:
                 # Already gone server-side.
                 self._forget_session(s)
+
+
+def _hd_manifest(manifest, programme):
+    """Return the manifest URL asking for the Full HD (1080p) profile; the web profile's stops at 720p.
+
+    The URL is unsigned, so its query alone picks the profile, which the CDN serves only with a past start
+    and an end. A programme over: its own window (a static manifest). Live, and a programme still on from its
+    beginning: an end HD_HORIZON ahead (a live manifest), live starting HD_REWIND back. A URL without a
+    device profile is left as it is.
+    """
+    base, _, query = manifest.partition("?")
+    params = dict(parse_qsl(query))
+    if not DEVICE_CLASS.search(params.get("device", "")):
+        return manifest
+    now = time.time()
+    if programme and programme["end"] <= now:
+        start, end = programme["start"], isotime.iso(programme["end"])
+    else:
+        start = programme["start"] if programme else isotime.iso(now - HD_REWIND)
+        end = isotime.iso(now + HD_HORIZON)
+    params["device"] = DEVICE_CLASS.sub(r"\g<1>" + HD_DEVICE_CLASS, params["device"])
+    params["start"], params["end"] = start, end
+    return base + "?" + urlencode(params, safe=":")

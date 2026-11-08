@@ -1,4 +1,5 @@
 import base64
+import email.message
 import threading
 import xml.etree.ElementTree as ET
 from http.server import BaseHTTPRequestHandler
@@ -288,3 +289,50 @@ def test_the_video_tracks_offered_are_logged_once_with_their_key_pairs():
     proxy = make_rewriter(protection, debug=logged.append)
     proxy._log_tracks([text, text.replace("hun", "eng")], lambda aset, tag: (None,), None)
     assert logged[-1] == "subtitle tracks offered: hun stpp subtitle; eng stpp subtitle"
+
+
+class _CdnHttp:
+    """The CDN: the URLs in `refused` answer 404, the rest a live manifest."""
+
+    def __init__(self, refused):
+        self.refused, self.got = refused, []
+
+    def close(self):
+        pass
+
+    def get(self, url, timeout=None):
+        self.got.append(url)
+        return transport.Response(404 if url in self.refused else 200, email.message.Message(), b'<MPD type="dynamic"/>', url)
+
+
+def _proxy(http, logged, served=False):
+    proxy = licproxy.LicenceProxy(
+        http, "https://lic", {}, logged.append, manifest_url="https://cdn/1080", fallback_url="https://cdn/web"
+    ).start()
+    proxy._keys.rewrite = lambda text, url: manifest.Rewritten(text, "")
+    proxy._served = served
+    return proxy
+
+
+def test_a_refused_full_hd_manifest_plays_the_usual_one_instead():
+    http, logged = _CdnHttp({"https://cdn/1080"}), []
+    proxy = _proxy(http, logged)
+    try:
+        assert proxy.respond(localserver.Request("GET", "/manifest", {}, b"")).status == 200
+        assert http.got == ["https://cdn/1080", "https://cdn/web"]
+        assert logged[0] == "Full HD profile refused (HTTP 404): playing the usual one"
+        # From then on the usual one only.
+        proxy.respond(localserver.Request("GET", "/manifest", {}, b""))
+        assert http.got[2:] == ["https://cdn/web"]
+    finally:
+        proxy.stop()
+
+
+def test_a_full_hd_manifest_failing_mid_stream_is_not_swapped_under_the_player():
+    http, logged = _CdnHttp({"https://cdn/1080"}), []
+    proxy = _proxy(http, logged, served=True)  # already playing
+    try:
+        assert proxy.respond(localserver.Request("GET", "/manifest", {}, b"")).status == 502
+        assert http.got == ["https://cdn/1080"]
+    finally:
+        proxy.stop()
