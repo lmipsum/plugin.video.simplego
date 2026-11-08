@@ -3,8 +3,8 @@
 
 Follows the AIA issuer addresses from the host's certificate to the intermediate and
 to a cross-signed root that Kodi's certifi trusts, checking every signature. Compares
-with resources/certs (--write replaces them); the printed SHA-256 fingerprints go into
-tests/test_certs.py.
+with resources/certs; --write replaces them and their SHA-256 fingerprints in
+tests/test_certs.py. Run weekly by .github/workflows/certs.yml.
 
     python scripts/update_certs.py           # fetch and check only
     python scripts/update_certs.py --write   # ship the chain fetched
@@ -13,6 +13,7 @@ tests/test_certs.py.
 import argparse
 import hashlib
 import os
+import re
 import socket
 import ssl
 import sys
@@ -28,7 +29,9 @@ from cryptography.x509.oid import AuthorityInformationAccessOID
 from cryptography.x509.oid import ExtensionOID
 
 HOST = "player.telekomtvgo.hu"
-CERTS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "resources", "certs")
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CERTS = os.path.join(ROOT, "resources", "certs")
+TEST = os.path.join(ROOT, "tests", "test_certs.py")
 FILES = {"intermediate": "intermediate.crt", "cross_signed": "cross-signed-root.crt"}
 
 
@@ -85,9 +88,21 @@ def fingerprint(cert):
     return hashlib.sha256(cert.public_bytes(Encoding.DER)).hexdigest()
 
 
+def write_fingerprints(fingerprints):
+    """Replace the shipped certificates' fingerprints in tests/test_certs.py (file name -> SHA-256)."""
+    with open(TEST, encoding="utf-8", newline="") as f:
+        text = f.read()
+    for name, value in fingerprints.items():
+        text, count = re.subn(r'("%s": ")[0-9a-f]{64}(")' % re.escape(name), r"\g<1>%s\g<2>" % value, text)
+        if count != 1:
+            sys.exit("%s: no fingerprint of %s to replace" % (TEST, name))
+    with open(TEST, "w", encoding="utf-8", newline="") as f:
+        f.write(text)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("--write", action="store_true", help="replace the certificates in resources/certs")
+    parser.add_argument("--write", action="store_true", help="replace the certificates and the test's fingerprints")
     args = parser.parse_args()
     found = dict(zip(("intermediate", "cross_signed"), chain()))
     changed = False
@@ -109,8 +124,10 @@ def main():
         if args.write and not same:
             with open(path, "wb") as f:
                 f.write(pem)
+    if changed and args.write:
+        write_fingerprints({FILES[role]: fingerprint(cert) for role, cert in found.items()})
     if changed and not args.write:
-        print("\nThe chain differs from the one shipped: run with --write, then update FINGERPRINTS in tests/test_certs.py.")
+        print("\nThe chain differs from the one shipped: run with --write.")
     return 1 if changed and not args.write else 0
 
 
