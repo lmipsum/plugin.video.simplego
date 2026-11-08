@@ -141,7 +141,8 @@ class Playback:
             the live session if still on air, else a catch-up session for its start time
         :param laps: laps(step) after each step (see resources.lib.util.laps)
         :param full_hd: ask for the Full HD (1080p) profile, the web one kept as the fallback (see _ask_full_hd)
-        :return: manifest URL, type and Widevine licence details
+        :return: manifest URL, type and Widevine licence details; window_end: when a live window
+            ends (a timestamp), None if it has none (see windowrenewal)
         """
         laps = laps or (lambda step: None)
         programme, restart = self._playable(channel, programme)
@@ -178,7 +179,7 @@ class Playback:
         if restart:
             # From the programme's start the manifest keeps the whole programme in its window.
             web_manifest = web_manifest.replace("start=LIVE", "start=" + programme["start"], 1)
-        manifest = _ask_full_hd(web_manifest, programme) if full_hd else web_manifest
+        manifest, window_end = _ask_full_hd(web_manifest, programme) if full_hd else (web_manifest, None)
         # As the web player does: the roll's query and headers verbatim, raw Widevine body.
         lic_params = "mediaId=%s&ownerUid=%s&sessionId=%s&enablelowlatency=false" % (
             quote(channel["media_id"], safe=""),
@@ -199,6 +200,7 @@ class Playback:
             "user_agent": core.USER_AGENT,
             "session": session,
             "from_start": restart,
+            "window_end": window_end,
         }
 
     def _playable(self, channel, programme):
@@ -309,17 +311,18 @@ class Playback:
 
 
 def _ask_full_hd(manifest, programme):
-    """Return the manifest URL for Full HD (1080p); as it is without a device profile."""
+    """Return (the manifest URL for Full HD (1080p), when its live window ends or None); as it is without a device profile."""
     base, _, query = manifest.partition("?")
     params = dict(parse_qsl(query))
     if not DEVICE_CLASS.search(params.get("device", "")):
-        return manifest
+        return manifest, None
     now = time.time()
     if programme and programme["end"] <= now:
-        start, end = programme["start"], isotime.iso(programme["end"])
+        start, end, window_end = programme["start"], isotime.iso(programme["end"]), None
     else:
+        window_end = now + FULL_HD_HORIZON
         start = programme["start"] if programme else isotime.iso(now - FULL_HD_REWIND)
-        end = isotime.iso(now + FULL_HD_HORIZON)
+        end = isotime.iso(window_end)
     params["device"] = DEVICE_CLASS.sub(r"\g<1>" + FULL_HD_DEVICE_CLASS, params["device"])
     params["start"], params["end"] = start, end
-    return base + "?" + urlencode(params, safe=":")
+    return base + "?" + urlencode(params, safe=":"), window_end

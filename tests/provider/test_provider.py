@@ -273,25 +273,27 @@ def test_full_hd_asks_the_1080p_profile(tmp_path):
     # Off: the web profile, nothing to fall back to.
     off = plays.play_live(channel)
     assert "device=mgr_live_dash_sd_reach_wv3_v2&start=LIVE" in off["manifest"] and off["manifest_fallback"] is None
+    assert off["window_end"] is None
 
     # Live: FULL_HD_REWIND back to FULL_HD_HORIZON ahead.
     live = plays.play_live(channel, full_hd=True)
     assert "device=mgr_live_dash_sd_AndroidSTB_wv1_v2" in live["manifest"]
     start, end = _window(live["manifest"])
     assert abs(start - (now - playback.FULL_HD_REWIND)) < 60 and abs(end - (now + playback.FULL_HD_HORIZON)) < 60
+    assert abs(live["window_end"] - end) < 1
     assert live["manifest_fallback"] == "https://cdn/sdash/" + uri  # the web one, if this is refused
 
     # A programme over: its own window.
     over = {"start": "2026-11-08T00:00:00Z", "end": int(now) - 3600, "flags": {"ct"}}
-    assert _window(plays.play_live(channel, over, full_hd=True)["manifest"]) == (
-        isotime.stamp("2026-11-08T00:00:00Z"),
-        int(now) - 3600,
-    )
+    watched_back = plays.play_live(channel, over, full_hd=True)
+    assert _window(watched_back["manifest"]) == (isotime.stamp("2026-11-08T00:00:00Z"), int(now) - 3600)
+    assert watched_back["window_end"] is None  # a static manifest: no live window to end
 
     # On air, from its beginning: its start, and an end ahead.
     on_air = {"start": isotime.iso(now - 1800), "end": int(now) + 1800, "flags": {"ct"}}
-    start, end = _window(plays.play_live(channel, on_air, full_hd=True)["manifest"])
-    assert start == isotime.stamp(on_air["start"]) and end > now + 3600
+    restarted = plays.play_live(channel, on_air, full_hd=True)
+    start, end = _window(restarted["manifest"])
+    assert start == isotime.stamp(on_air["start"]) and end > now + 3600 and abs(restarted["window_end"] - end) < 1
 
 
 def test_play_live_turns_2401_into_archive_unavailable(tmp_path):
@@ -747,4 +749,5 @@ def test_a_removed_device_is_attached_again_once_and_what_was_its_forgotten(tmp_
 
 
 def test_full_hd_leaves_a_manifest_without_a_device_profile_as_it_is():
-    assert playback._ask_full_hd("https://cdn/LIVE$1/index.mpd/Manifest?start=LIVE", None).endswith("?start=LIVE")
+    url = "https://cdn/LIVE$1/index.mpd/Manifest?start=LIVE"
+    assert playback._ask_full_hd(url, None) == (url, None)

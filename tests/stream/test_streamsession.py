@@ -114,3 +114,46 @@ def test_the_beacon_and_the_position_are_sent_on_a_thread_and_a_busy_round_is_le
     release.set()
     session.close()
     assert sent == [("position", 120.0), ("beacon", False), ("position", 120.0), ("beacon", True)]
+
+
+def test_a_live_stream_with_a_window_end_is_opened_again_once_when_due(kodi, monkeypatch):
+    from resources.lib.stream import streamsession
+
+    class Keys:
+        proxy = type("Proxy", (), {"change_times": []})()
+
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def follow(self, *args):
+            pass
+
+    class LivePlayer:
+        def isPlaying(self):
+            return True
+
+        def getTime(self):
+            return 3580.0
+
+        def getTotalTime(self):
+            return 3600.0  # 20 s behind the live edge
+
+    monkeypatch.setattr(streamsession.keyfollower, "KeyFollower", Keys)
+    monkeypatch.setattr(streamsession, "programme_start", lambda client, channel, when: None)
+    end = time.time() + 600
+    stream = {"session": {"session_id": "S1", "interval": 24 * 3600}, "channel": {"id": "C1"}, "window_end": end}
+    session = streamsession.Session(object(), stream, proxy=None)
+    renewed = []
+    session.renew = lambda: renewed.append(True)
+    session.tick(LivePlayer(), now=session.renewal.deadline - 1)
+    assert renewed == []
+    session.tick(LivePlayer(), now=end)
+    session.tick(LivePlayer(), now=end + 1)
+    assert renewed == [True]
+
+
+def test_a_stream_without_a_window_end_is_not_opened_again(kodi):
+    from resources.lib.stream import streamsession
+
+    session = streamsession.Session(object(), {"session": {"session_id": "S1", "interval": 600}, "channel": {"id": "C1"}}, None)
+    assert session.renewal is None
