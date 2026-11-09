@@ -30,7 +30,10 @@
             <screenshot>resources/screenshots/screenshot-continue.jpg</screenshot>
             <screenshot>resources/screenshots/screenshot-guide.jpg</screenshot>
         </assets>
-        <news>v0.8.153 (2026-11-09)
+        <news>v0.8.154 (2026-11-09)
+- Log in on a phone or tablet itself: the address under the QR code opens in its browser
+
+v0.8.153 (2026-11-09)
 - Live TV tries again to go on if a reopening fails
 
 v0.8.152 (2026-11-08)
