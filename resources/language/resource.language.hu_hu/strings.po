@@ -23,8 +23,8 @@ msgid "The login has expired or was used elsewhere. Log in again from the main m
 msgstr "A bejelentkezés lejárt, vagy máshol már felhasználták. Jelentkezz be újra a főmenüből."
 
 msgctxt "#30011"
-msgid "Playback is blocked outside Hungary. Turn off VPN / proxy on this device."
-msgstr "A lejátszás Magyarországon kívülről (VPN, adatközponti IP) le van tiltva. Kapcsold ki a VPN-t / proxyt ezen az eszközön."
+msgid "Playback is refused from this internet address. Try without VPN / proxy, or another exit."
+msgstr "A szolgáltató erről az internetcímről nem engedi a lejátszást. Próbáld VPN / proxy nélkül, vagy másik kilépőponttal."
 
 msgctxt "#30012"
 msgid "The licence server does not trust this device's Widevine module (3099). On Windows/macOS Kodi this service cannot play; use Kodi on Android TV / Google TV."

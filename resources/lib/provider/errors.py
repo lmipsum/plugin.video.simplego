@@ -17,7 +17,7 @@ class AuthError(ApiError):
 
 
 class GeoBlockedError(ApiError):
-    """The provider refused playback from outside Hungary (7027, "out of country blocked")."""
+    """The provider refused playback from this address (7027, "out of country blocked"): some VPN and data-centre ones."""
 
     kind = "geo"
 

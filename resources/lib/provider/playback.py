@@ -100,7 +100,7 @@ class Playback:
         if data.get("result") != "success":
             err = data.get("response") or {}
             msg = "%s -> HTTP %s, code %s: %s" % (path, r.status_code, err.get("code"), err.get("message"))
-            # 7027 "out of country blocked": a non-HU IP, typically a VPN.
+            # 7027 "out of country blocked": despite the name, some VPN and data-centre addresses, not a country.
             if err.get("code") == 7027:
                 raise errors.GeoBlockedError(msg)
             e = errors.ApiError(msg)
