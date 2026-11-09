@@ -116,8 +116,9 @@ def test_the_beacon_and_the_position_are_sent_on_a_thread_and_a_busy_round_is_le
     assert sent == [("position", 120.0), ("beacon", False), ("position", 120.0), ("beacon", True)]
 
 
-def test_a_live_stream_with_a_window_end_is_opened_again_once_when_due(kodi, monkeypatch):
+def test_a_live_stream_with_a_window_end_is_opened_again_when_due_and_tried_again_a_minute_later(kodi, monkeypatch):
     from resources.lib.stream import streamsession
+    from resources.lib.stream import windowrenewal
 
     class Keys:
         proxy = type("Proxy", (), {"change_times": []})()
@@ -150,6 +151,8 @@ def test_a_live_stream_with_a_window_end_is_opened_again_once_when_due(kodi, mon
     session.tick(LivePlayer(), now=end)
     session.tick(LivePlayer(), now=end + 1)
     assert renewed == [True]
+    session.tick(LivePlayer(), now=end + windowrenewal.RETRY_EVERY)  # still this stream: the try did not take
+    assert renewed == [True, True]
 
 
 def test_a_stream_without_a_window_end_is_not_opened_again(kodi):

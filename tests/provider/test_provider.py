@@ -277,7 +277,7 @@ def test_full_hd_asks_the_1080p_profile(tmp_path):
 
     # Live: FULL_HD_REWIND back to FULL_HD_HORIZON ahead.
     live = plays.play_live(channel, full_hd=True)
-    assert "device=mgr_live_dash_sd_AndroidSTB_wv1_v2" in live["manifest"]
+    assert "device=mgr_live_dash_sd_%s_v2" % playback.FULL_HD_DEVICE_CLASS in live["manifest"]
     start, end = _window(live["manifest"])
     assert abs(start - (now - playback.FULL_HD_REWIND)) < 60 and abs(end - (now + playback.FULL_HD_HORIZON)) < 60
     assert abs(live["window_end"] - end) < 1

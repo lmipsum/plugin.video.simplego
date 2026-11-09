@@ -314,9 +314,9 @@ class Session:
             kodiutil.log("beacon failed: %s" % e, xbmc.LOGWARNING)
 
     def _renew_if_due(self, player, now):
-        """Open the live stream again once its window renewal is due (see windowrenewal), once."""
+        """Open the live stream again when its window renewal is due (see windowrenewal); a new stream ends this session."""
         if self.renewal and self.renew and self.renewal.is_due(now, keyfollower.live_lag(player)):
-            self.renewal = None
+            self.renewal.note_try(now)
             kodiutil.log("opening the live stream again before its window ends")
             self.renew()
 
