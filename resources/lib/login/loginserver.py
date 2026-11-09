@@ -1,10 +1,10 @@
 """LAN receiver for logging in from a phone.
 
 The provider's only login is a captcha-protected SSO page that redirects its tokens only
-to its own player host, so a human logs in on a phone: the TV's QR code opens
+to its own player host, so a human logs in on a phone: Kodi's QR code opens
 GET /?c=<code>, a page with the login button and a field for the final address, posted to /login.
 
-It runs only while the login dialog is open and requires the code shown on the TV. Its
+It runs only while the login dialog is open and requires the code Kodi shows. Its
 texts are the add-on's strings (see TEXT_IDS), in Kodi's language.
 """
 
@@ -108,7 +108,7 @@ class LoginReceiver:
         return _html(200, _DONE % dict(self._texts, head=self._head()))
 
     def accepts(self, code):
-        """Return whether a request carries the code shown on the TV (compared in constant time)."""
+        """Return whether a request carries the code Kodi shows (compared in constant time)."""
         return secrets.compare_digest(code.encode(), self.code.encode())
 
     def _head(self):

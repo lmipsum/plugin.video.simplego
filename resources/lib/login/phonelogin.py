@@ -1,4 +1,4 @@
-"""The phone login on the TV: the QR code shown until the phone sends the login back (see loginserver)."""
+"""The phone login in Kodi: the QR code shown until the phone sends the login back (see loginserver)."""
 
 import contextlib
 import os
@@ -23,9 +23,13 @@ def wait_for_token(client, timeout=TIMEOUT):
     texts = {name: kodiutil.string(string_id) for name, string_id in loginserver.TEXT_IDS.items()}
     receiver = loginserver.LoginReceiver(client.login_url(), texts, xbmc.getLanguage(xbmc.ISO_639_1))
     url = receiver.phone_url(xbmc.getIPAddress())
+    # Kodi on the phone itself can't scan its own QR code: the address opens in its browser, over
+    # loopback, which works whatever address Kodi reports for the LAN.
+    own_url = receiver.phone_url("127.0.0.1") if kodiutil.phone_or_tablet() else None
+    hint = kodiutil.string(30268 if own_url else 30028)
     qr_png = os.path.join(kodiutil.PROFILE, "login_qr.png")
     qrwindow.make_qr_png(url, qr_png)
-    window = qrwindow.QrWindow(kodiutil.PROFILE, kodiutil.string(30027), qr_png, url, kodiutil.string(30028))
+    window = qrwindow.QrWindow(kodiutil.PROFILE, kodiutil.string(30027), qr_png, url, hint, open_url=own_url)
     window.show()
     monitor = xbmc.Monitor()
     try:

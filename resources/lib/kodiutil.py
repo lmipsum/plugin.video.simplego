@@ -20,6 +20,7 @@ ADDON_PATH = xbmcvfs.translatePath(_addon.getAddonInfo("path"))
 
 # The platform checks live with the fast path's (see kodienv).
 android = kodienv.android
+phone_or_tablet = kodienv.phone_or_tablet
 untrusted_widevine = kodienv.untrusted_widevine
 isa_ready = kodienv.isa_ready
 
@@ -33,6 +34,14 @@ EXPORT_REQUEST = "%s.export_request" % ADDON_ID
 def addon():
     """Return the add-on, with its settings as reload_settings last read them."""
     return _addon
+
+
+def open_in_browser(url):
+    """Open the address in the device's default browser (Android).
+
+    No package: Kodi then passes a null one, so Android picks the default app for the address.
+    """
+    xbmc.executebuiltin('StartAndroidActivity("","android.intent.action.VIEW","","%s")' % url)
 
 
 def set_setting(setting_id, value):

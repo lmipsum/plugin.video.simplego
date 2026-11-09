@@ -59,3 +59,9 @@ def test_dates_follow_kodis_region_formats_with_its_own_day_and_month_names(kodi
     kodiutil._REGION.clear()
     assert kodiutil.local_date(early) == "10/5/2026 %d"  # an escaped "%%d" stays as it is
     kodiutil._REGION.clear()
+
+
+def test_a_link_opens_in_the_default_browser(kodi):
+    kodiutil.open_in_browser("http://127.0.0.1:47913/?c=abc")
+    # No package: Android picks the default app for the address.
+    assert ('StartAndroidActivity("","android.intent.action.VIEW","","http://127.0.0.1:47913/?c=abc")', "builtin") in kodi.LOG
