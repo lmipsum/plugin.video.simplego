@@ -5,8 +5,7 @@ use your best judgment and feel free to propose changes to this document.
 
 ## What belongs here
 
-The add-on does what the Telekom TV GO web player does, with the user's own
-subscription. Changes are welcome when they:
+The add-on plays Telekom TV GO with the user's own subscription. Changes are welcome when they:
 
 - follow a change of the web player or the backend it talks to;
 - add a feature the web player has (catch-up, recordings, more of the guide);
