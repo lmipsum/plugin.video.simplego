@@ -162,7 +162,8 @@ class ManifestRewriter:
         last, noticed = self._live_last or {}, self._live_noticed or {}
         checks = []
         for aset in asets:
-            if 'contentType="video"' not in aset and 'mimeType="video/' not in aset:
+            video = 'contentType="video"' in aset or 'mimeType="video/' in aset
+            if not video or dash.is_trick_mode(aset):
                 continue
             tag = dash.smallest(dash.representations(aset))
             init = dash.init_url(aset, tag, mpd_url) if tag else None
@@ -262,10 +263,8 @@ class ManifestRewriter:
             return
         self._tracks_logged = True
         pairs, tracks = {}, []
-        for aset in (a for a in asets if 'contentType="video"' in a):
+        for aset in (a for a in asets if 'contentType="video"' in a and not dash.is_trick_mode(a)):
             for tag in dash.representations(aset):
-                if 'id="trickmode' in tag:
-                    continue
                 size = re.search(r'\bwidth="(\d+)".*?\bheight="(\d+)"', tag) or re.search(r'\bheight="(\d+)"', tag)
                 rate = re.search(r'\bbandwidth="(\d+)"', tag)
                 pair = dash.key_pair(rep_protection(aset, tag)[0])

@@ -303,6 +303,25 @@ def test_a_catch_up_reads_no_live_keys():
     assert proxy.live_changes == ()
 
 
+def test_the_trick_mode_pictures_are_not_watched_for_live_key_changes():
+    trick = (
+        '<AdaptationSet contentType="video"><EssentialProperty schemeIdUri="%s" value="1"/>'
+        '<ContentProtection schemeIdUri="%s" value="Widevine"/><SegmentTemplate media="t/$Time$" initialization="t/Init">'
+        '<SegmentTimeline><S t="100" d="10" r="5"/></SegmentTimeline></SegmentTemplate>'
+        '<Representation id="t" bandwidth="2500000"/></AdaptationSet>' % (dash.TRICK_MODE, dash.WIDEVINE_URN)
+    )
+    live = MPD.replace("<MPD ", '<MPD type="dynamic" ', 1).replace('<Period id="1">', '<Period id="1">' + trick, 1)
+    files = dict(FILES, **{BASE + "t/Init": init("video-a", PAIR_A), BASE + "t/140": fragment("video-a", PAIR_A)})
+    http = FakeHttp(files)
+    proxy = make_rewriter(http)
+    proxy.rewrite(live, MPD_URL)
+    # A refresh with a newer segment: the video's is read, the trick-mode pictures' (which ISA leaves out) not.
+    files[BASE + "v/150"] = fragment("video-a", PAIR_A)
+    http.fetched.clear()
+    proxy.rewrite(live.replace('r="5"', 'r="6"'), MPD_URL)
+    assert http.fetched == [BASE + "v/150"]
+
+
 def test_only_the_video_track_is_watched_for_live_key_changes():
     files = dict(FILES)
     live = MPD.replace("<MPD ", '<MPD type="dynamic" ', 1)
