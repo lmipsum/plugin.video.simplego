@@ -47,9 +47,9 @@ information page, by programme type.
 | Platform | Minimum to try | Tested on | Result |
 |---|---|---|---|
 | Android TV / Google TV | Android 5.0 | Android 14 | Works |
+| Android phone, tablet | Android 5.0 | Android 13 | Works |
 | Windows | – | Windows 10 | Licence refused |
 | iOS, tvOS | – | – | No DRM support |
-| Android phone, tablet | Android 5.0 | – | Not tested |
 | Raspberry Pi | LibreELEC 11 | – | Not tested |
 | Linux PC | Kodi 20 | – | Not tested |
 | LG webOS | webOS 4.0 | – | Not tested |
