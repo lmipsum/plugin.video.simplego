@@ -43,7 +43,6 @@ information page, by programme type.
 ## Requirements
 
 - Kodi 20 (Nexus) or newer, with InputStream Adaptive and InputStream Helper (installed automatically).
-- A Hungarian internet address.
 
 | Platform | Minimum to try | Tested on | Result |
 |---|---|---|---|
@@ -99,7 +98,7 @@ Log out before uninstalling the add-on together with its data; otherwise remove 
 
 | Message | Cause |
 |---|---|
-| Playback is blocked outside Hungary (7027) | The Kodi device's internet address is not Hungarian, e.g. a VPN or proxy exiting abroad. |
+| Playback is refused from this internet address (7027) | The provider blocks some addresses, mostly VPN, proxy or data-centre ones; another exit or no VPN helps. |
 | The licence server does not trust this device's Widevine module (3099) | Windows / macOS Kodi; see [Requirements](#requirements). |
 | `max sessions for platform group exceeded` (2413) | Too many streams at once on the account (other devices, or a crashed Kodi's sessions not timed out yet). |
 | The login has expired or was used elsewhere | Log in again. |

@@ -23,7 +23,7 @@ msgid "The login has expired or was used elsewhere. Log in again from the main m
 msgstr ""
 
 msgctxt "#30011"
-msgid "Playback is blocked outside Hungary. Turn off VPN / proxy on this device."
+msgid "Playback is refused from this internet address. Try without VPN / proxy, or another exit."
 msgstr ""
 
 msgctxt "#30012"
