@@ -12,7 +12,9 @@ Simple GO (`plugin.video.simplego`) is an unofficial [Kodi](https://kodi.tv/) ad
 watching back, and, if you want it, the channels plus programme guide in Kodi's TV section.
 
 This add-on is not affiliated with or endorsed by Magyar Telekom Nyrt. You need a valid Telekom TV GO
-subscription; the add-on only does what the web player does with your own account.
+subscription. Use it at your own risk: you are responsible for using it within your subscription's terms,
+and, to the extent permitted by law, the authors accept no liability for any consequence, including
+restrictions on your account.
 
 ## Where to watch
 
