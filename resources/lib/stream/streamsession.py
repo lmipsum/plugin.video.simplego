@@ -251,7 +251,7 @@ class Session:
         window_end = stream.get("window_end")
         starts = functools.partial(programme_start, client, stream["channel"])
         self.renewal = windowrenewal.WindowRenewal(window_end, starts) if window_end else None
-        self.renew = None  # renew(), set by the player: opens the live stream again (see windowrenewal)
+        self.renew = None  # renew(why), set by the player: opens the live stream again (see windowrenewal)
 
     @property
     def id(self):
@@ -317,8 +317,9 @@ class Session:
         """Open the live stream again when its window renewal is due (see windowrenewal); a new stream ends this session."""
         if self.renewal and self.renew and self.renewal.is_due(now, keyfollower.live_lag(player)):
             self.renewal.note_try(now)
-            kodiutil.log("opening the live stream again before its window ends")
-            self.renew()
+            why = "before its window ends" if now < self.renewal.window_end else "after its window ended"
+            kodiutil.log("opening the live stream again %s" % why)
+            self.renew(why)
 
     def _follow(self, player, now):
         if self.bookmark or self.proxy.change_times:
