@@ -10,6 +10,8 @@ from urllib.parse import urljoin
 
 WIDEVINE_URN = "urn:uuid:edef8ba9-79d6-4ace-a3c8-27dcd51d21ed"
 WIDEVINE_SYSTEM_ID = bytes.fromhex("edef8ba979d64acea3c827dcd51d21ed")
+# Marks a trick-mode AdaptationSet (pictures for fast seeking), which ISA leaves out.
+TRICK_MODE = "http://dashif.org/guidelines/trickmode"
 # The provider's MPDs: self-closing Representation tags inside each AdaptationSet.
 ADAPTATION_SET = re.compile(r"<AdaptationSet\b.*?</AdaptationSet>", re.S)
 REPRESENTATION = re.compile(r"<Representation\b[^>]*/>")
@@ -23,6 +25,11 @@ TIMELINE_ATTRIBUTE = re.compile(r'\b([tdr])="(-?\d+)"')
 def adaptation_sets(xml):
     """Return the AdaptationSets of a manifest or a period, as text."""
     return ADAPTATION_SET.findall(xml)
+
+
+def is_trick_mode(aset):
+    """Return whether an AdaptationSet is a trick-mode one (see TRICK_MODE)."""
+    return TRICK_MODE in aset
 
 
 def representations(aset):
