@@ -145,14 +145,14 @@ def test_a_live_stream_with_a_window_end_is_opened_again_when_due_and_tried_agai
     stream = {"session": {"session_id": "S1", "interval": 24 * 3600}, "channel": {"id": "C1"}, "window_end": end}
     session = streamsession.Session(object(), stream, proxy=None)
     renewed = []
-    session.renew = lambda: renewed.append(True)
+    session.renew = renewed.append
     session.tick(LivePlayer(), now=session.renewal.deadline - 1)
     assert renewed == []
-    session.tick(LivePlayer(), now=end)
-    session.tick(LivePlayer(), now=end + 1)
-    assert renewed == [True]
-    session.tick(LivePlayer(), now=end + windowrenewal.RETRY_EVERY)  # still this stream: the try did not take
-    assert renewed == [True, True]
+    session.tick(LivePlayer(), now=session.renewal.deadline)
+    session.tick(LivePlayer(), now=session.renewal.deadline + 1)
+    assert renewed == ["before its window ends"]
+    session.tick(LivePlayer(), now=end + windowrenewal.RETRY_EVERY)  # still this stream: the tries did not take
+    assert renewed == ["before its window ends", "after its window ended"]
 
 
 def test_a_stream_without_a_window_end_is_not_opened_again(kodi):

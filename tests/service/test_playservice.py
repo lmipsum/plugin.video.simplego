@@ -248,6 +248,6 @@ def test_a_live_channel_is_opened_again_before_its_window_ends(service, monkeypa
         ),
     )
     monkeypatch.setattr(service._player, "play", lambda path, li: played.append(path), raising=False)
-    service._renew_live({"id": "c9", "media_id": "LIVE$9"})  # off the service's loop: on a thread
+    service._renew_live({"id": "c9", "media_id": "LIVE$9"}, "before its window ends")  # off the service's loop: on a thread
     assert _wait(lambda: played == ["http://p/m"])
     assert asked == [("c9", "LIVE$9", None)]  # live, from its edge, whatever it began as

@@ -129,7 +129,7 @@ class PlayService:
         session = streamsession.Session(client, stream, proxy)
         session.keys.restart = lambda part, seconds: self._restart(session, part, seconds)
         session.reopen = lambda: self._reopen(channel_id, media_id, programme)
-        session.renew = lambda: self._renew_live(channel)
+        session.renew = lambda why: self._renew_live(channel, why)
         with self._lock:
             for playing in self._sessions:
                 playing.keys.hold()
@@ -286,9 +286,9 @@ class PlayService:
             return
         self._play_live(channel, "after waking up")
 
-    def _renew_live(self, channel):
-        """Open a live channel again before its stream's window ends (see windowrenewal), off the service's loop."""
-        threading.Thread(target=self._play_live, args=(channel, "before its window ends"), daemon=True).start()
+    def _renew_live(self, channel, why):
+        """Open a live channel again for its stream's window end (see windowrenewal), off the service's loop."""
+        threading.Thread(target=self._play_live, args=(channel, why), daemon=True).start()
 
     def _play_live(self, channel, why):
         """Open a live channel's stream and play it; `why` says when, for the log."""

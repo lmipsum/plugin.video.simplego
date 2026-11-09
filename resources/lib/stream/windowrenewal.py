@@ -26,6 +26,7 @@ class WindowRenewal:
     """
 
     def __init__(self, window_end, programme_start):
+        self.window_end = window_end
         self.deadline = window_end - END_MARGIN
         self._programme_start = programme_start
         self._renew_at = None
