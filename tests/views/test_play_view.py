@@ -156,3 +156,28 @@ def test_the_session_is_kept_while_our_stream_plays_then_closed(play, monkeypatc
     assert views_play.xbmc is xbmc
     play("?action=play&id=C1&media=M1").do_play()
     assert Session.last.done == ["start", "seek", "tick", "close"]
+
+
+def test_inputstream_adaptive_is_made_ready_before_a_stream_session_opens(play, kodi, monkeypatch):
+    import sys
+    import types
+
+    kodi.CONDITIONS["System.AddonIsEnabled(inputstream.adaptive)"] = False
+    checks = []
+    ready = {"answer": False}
+
+    class Helper:
+        def __init__(self, protocol, drm):
+            checks.append((protocol, drm))
+
+        def check_inputstream(self):
+            return ready["answer"]
+
+    monkeypatch.setitem(sys.modules, "inputstreamhelper", types.SimpleNamespace(Helper=Helper))
+    p = play("?action=play&id=C1&media=M1")
+    p.do_play()  # not enabled (or cancelled): no session opened to wait on it
+    assert checks == [("mpd", "com.widevine.alpha")]
+    assert p.started_streams == [] and [ok for ok, li in p.resolved] == [False]
+    ready["answer"] = True
+    p.do_play()
+    assert len(p.started_streams) == 1
