@@ -207,7 +207,7 @@ class PlayService:
             old = [s for s in self._sessions if s.started and not s.switch_began]
             self._sessions = [s for s in self._sessions if s not in old]
             if old:
-                self._wake.stopped()
+                self._wake.stopped(xbmc.getGlobalIdleTime(), next_on_its_way=bool(self._sessions))
             # Nothing on its way (a switch has its next stream here already): no channel plays.
             unmark = bool(old) and not self._sessions
         if unmark:

@@ -201,6 +201,21 @@ def test_a_live_channel_plays_again_when_kodi_wakes_up(service, monkeypatch):
     assert asked == [("c8", "LIVE$8")] and played == ["http://p/m"]
 
 
+@pytest.mark.parametrize(("idle", "replayed"), [(wakeresume.RETURN_IDLE, True), (0, False)])
+def test_a_live_channel_kodi_stops_with_no_key_pressed_plays_again(service, monkeypatch, idle, replayed):
+    asked = []
+    monkeypatch.setattr(wakeresume.threading, "Timer", lambda delay, f, args: types.SimpleNamespace(start=lambda: f(*args)))
+    monkeypatch.setattr(playservice.xbmc, "getGlobalIdleTime", lambda: idle)
+    monkeypatch.setattr(service, "play", lambda cid, media, programme=None: asked.append(cid) or {})
+    monkeypatch.setattr(service._player, "isPlaying", lambda: False, raising=False)
+    live = Session(8)
+    live.started = False
+    service._sessions = [live]
+    service.on_started()
+    service.on_stopped()  # back from another HDMI input, or the user's Stop
+    assert asked == (["c8"] if replayed else [])
+
+
 def test_waking_up_after_a_programme_watched_back_plays_nothing_itself(service, monkeypatch):
     asked = []
     monkeypatch.setattr(service, "play", lambda *a, **k: asked.append(a) or {})
