@@ -42,18 +42,13 @@ information page, by programme type.
 
 ## Requirements
 
-- Kodi 20 (Nexus) or newer, with InputStream Adaptive and InputStream Helper (installed automatically).
+- Kodi 20 (Nexus) or newer on Android, with InputStream Adaptive (installed automatically).
+- Kodi on other systems is refused: the licence server does not accept their Widevine module.
 
 | Platform | Minimum to try | Tested on | Result |
 |---|---|---|---|
 | Android TV / Google TV | Android 5.0 | Android 14 | Works |
 | Android phone, tablet | Android 5.0 | Android 13 | Works |
-| Windows | – | Windows 10 | Licence refused |
-| iOS, tvOS | – | – | No DRM support |
-| Raspberry Pi | LibreELEC 11 | – | Not tested |
-| Linux PC | Kodi 20 | – | Not tested |
-| LG webOS | webOS 4.0 | – | Not tested |
-| macOS | macOS 10.14 | – | Not tested |
 
 Tested on another device or version? Please [open an issue](https://github.com/lmipsum/plugin.video.simplego/issues/new/choose).
 
@@ -66,7 +61,6 @@ Through the add-on's Kodi repository, so that Kodi installs its updates too:
 2. In Kodi: *Settings → System → Add-ons*, enable *Unknown sources*.
 3. *Settings → Add-ons → Install from zip file* and pick the zip.
 4. *Install from repository → lmipsum repository → Video add-ons → Simple GO*.
-5. On the first playback InputStream Helper offers to install Widevine; accept it.
 
 Without updates: install `plugin.video.simplego-<version>.zip` from the same release in step 3 instead.
 
@@ -98,8 +92,8 @@ Log out before uninstalling the add-on together with its data; otherwise remove 
 
 | Message | Cause |
 |---|---|
-| Playback is refused from this internet address (7027) | The provider blocks some addresses, mostly VPN, proxy or data-centre ones; another exit or no VPN helps. |
-| The licence server does not trust this device's Widevine module (3099) | Windows / macOS Kodi; see [Requirements](#requirements). |
+| Playback is refused from this internet address. | The provider blocks some addresses, mostly VPN, proxy or data-centre ones; another exit or no VPN helps. |
+| The licence server does not accept this device's Widevine module | Kodi not on Android; see [Requirements](#requirements). |
 | `max sessions for platform group exceeded` (2413) | Too many streams at once on the account (other devices, or a crashed Kodi's sessions not timed out yet). |
 | The login has expired or was used elsewhere | Log in again. |
 
@@ -114,14 +108,8 @@ A bug report needs the Kodi log of the problem, with debug logging on:
 
 1. *Settings → System → Logging → Enable debug logging*.
 2. Do what goes wrong once more.
-3. Take `kodi.log`, or upload it with Kodi's own *Kodi Logfile Uploader* add-on (easiest on a TV box):
-
-   | System | Where `kodi.log` is |
-   |---|---|
-   | Android | `Android/data/org.xbmc.kodi/files/.kodi/temp/kodi.log` on the device's storage |
-   | Windows | `%APPDATA%\Kodi\kodi.log` |
-   | Linux | `~/.kodi/temp/kodi.log` |
-   | macOS | `~/Library/Logs/kodi.log` |
+3. Upload `kodi.log` with Kodi's own *Kodi Logfile Uploader* add-on, or take it from
+   `Android/data/org.xbmc.kodi/files/.kodi/temp/kodi.log` on the device's storage.
 
 The add-on's own lines start with `[plugin.video.simplego]`. Before posting, remove tokens and login
 addresses (anything with `access_token` or `refresh_token`), account and device identifiers and IP

@@ -29,12 +29,15 @@ class NotSubscribedError(ApiError):
 
 
 class LicenceRefusedError(ApiError):
-    """The licence server refused this device's Widevine module before (3099); retrying is futile."""
+    """The licence server refuses this device's Widevine module; retrying is futile.
+
+    :param code: the server's refusal code; None when the caller knows it would be refused and never asked
+    """
 
     kind = "licence"
 
-    def __init__(self, code):
-        ApiError.__init__(self, "licence refused before (%s)" % code)
+    def __init__(self, code=None):
+        ApiError.__init__(self, "licence refused (%s)" % (code or "not asked"))
         self.code = code
 
 

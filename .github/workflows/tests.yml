@@ -28,7 +28,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Kodi runs on 3.8 (older Linux distributions) to 3.11 (Android); ruff's py38 target guards the syntax.
+        # Kodi runs on 3.8 (Kodi 20) to 3.11 (Kodi 21); ruff's py38 target guards the syntax.
         python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

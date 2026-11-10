@@ -27,7 +27,10 @@ CLOSE_WAIT = 5
 # How near the start or end (seconds) a saved position counts as none.
 BOOKMARK_MARGIN = 60
 
-# Home window property: a 3099 refusal seen in this Kodi run (see licence_refused).
+# A licence refusal that repeats on every channel in this Kodi run: later channels fail fast without
+# opening a session.
+NOT_TRUSTED = "3099"
+# Home window property: a NOT_TRUSTED refusal seen in this Kodi run (see licence_refused).
 LICENCE_REFUSED = "%s.licence_refused" % kodiutil.ADDON_ID
 
 # (channel, start) -> key change segment indexes found by the proxy, reused when the next part starts.
@@ -42,7 +45,9 @@ def start_stream(client, channel, programme=None, laps=None):
     :return: (stream, proxy): the session's details and its licproxy.LicenceProxy
     """
     laps = laps or (lambda step: None)
-    refused = "3099" if kodiutil.untrusted_widevine() else kodiutil.home().getProperty(LICENCE_REFUSED)
+    if kodiutil.untrusted_widevine():
+        raise provider.LicenceRefusedError()
+    refused = kodiutil.home().getProperty(LICENCE_REFUSED)
     if refused:
         raise provider.LicenceRefusedError(refused)
     unlocked = parental.gate(client, channel, programme)
@@ -354,17 +359,15 @@ class Session:
 
 
 def licence_refused(code):
-    """Tell the user the licence server refused the stream, and remember a 3099 until Kodi restarts."""
-    # 3099 "browser framework is not trusted": Verified Media Path required, which Kodi's
-    # desktop CDM cannot provide, so later channels fail fast without opening a session.
-    if code == "3099":
+    """Tell the user the licence server refused the stream, and remember a NOT_TRUSTED one until Kodi restarts."""
+    if code == NOT_TRUSTED:
         kodiutil.home().setProperty(LICENCE_REFUSED, code)
     xbmcgui.Dialog().ok(kodiutil.name(), licence_message(code))
 
 
 def licence_message(code):
-    """Return the message for a licence refused with this code."""
-    return kodiutil.string(30012) if code == "3099" else kodiutil.string(30013) % code
+    """Return the message for a licence refused with this code (None: a Kodi off Android, see untrusted_widevine)."""
+    return kodiutil.string(30012) if code in (None, NOT_TRUSTED) else kodiutil.string(30013) % code
 
 
 def audio_languages():

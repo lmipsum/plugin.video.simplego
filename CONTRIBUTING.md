@@ -26,7 +26,7 @@ python scripts/build_zip.py
 ## Style
 
 - Follow the existing code: ruff (`ruff check`, `ruff format`) with the settings in `ruff.toml`.
-- Keep the code Python 3.8 compatible: Kodi on older Linux distributions still runs on it.
+- Keep the code Python 3.8 compatible: Kodi 20 (Nexus), the oldest supported, runs on it.
 - Explain *why* in comments where the platform forces something unusual.
 - Add or update tests for every behaviour change outside Kodi-only code.
 - Write code, comments, commit messages and issues in English.

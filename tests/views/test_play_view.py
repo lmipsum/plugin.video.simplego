@@ -114,10 +114,10 @@ def test_a_channel_without_its_media_is_found_in_the_list(play):
         play("?action=play&id=C9").do_play()
 
 
-def test_desktop_kodi_is_refused_before_anything(play, kodi):
+def test_kodi_off_android_is_refused_before_anything(play, kodi):
     from resources.lib import provider
 
-    kodi.CONDITIONS["System.Platform.Windows"] = True
+    kodi.CONDITIONS["System.Platform.Android"] = False
     p = play("?action=play&id=C1&media=M1")
     with pytest.raises(provider.LicenceRefusedError):
         p.do_play()
