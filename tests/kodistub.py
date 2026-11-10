@@ -65,6 +65,7 @@ xbmc.LOGDEBUG, xbmc.LOGINFO, xbmc.LOGWARNING, xbmc.LOGERROR = 0, 1, 2, 3
 xbmc.ISO_639_1, xbmc.ISO_639_2 = 0, 1
 xbmc.log = lambda msg, level=1: LOG.append((msg, level))
 xbmc.getCondVisibility = lambda condition: CONDITIONS.get(condition, False)
+xbmc.getGlobalIdleTime = lambda: 0  # a key was just pressed
 xbmc.getInfoLabel = lambda label: {"System.BuildVersion": "21.2 (21.2.0)"}.get(label, "")
 xbmc.getRegion = lambda what: {"dateshort": "%Y-%m-%d", "time": "%H:%M:%S"}.get(what, "")
 xbmc.getLanguage = lambda form=None: "hun"
