@@ -44,9 +44,9 @@ class PlayViews:
 
         call, client, params = self._call, self._call.client, self._call.params
         started = time.time()
-        # Before the login too: on Windows/macOS it would be for nothing.
+        # Before the login too: off Android the licence would be refused anyway.
         if kodiutil.untrusted_widevine():
-            raise provider.LicenceRefusedError("3099")
+            raise provider.LicenceRefusedError()
         # Not logged in: the phone login first, then the channel starts.
         if not client.is_logged_in():
             token = phonelogin.wait_for_token(client)

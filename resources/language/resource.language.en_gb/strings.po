@@ -27,7 +27,7 @@ msgid "Playback is refused from this internet address. Try without VPN / proxy, 
 msgstr ""
 
 msgctxt "#30012"
-msgid "The licence server does not trust this device's Widevine module (3099). On Windows/macOS Kodi this service cannot play; use Kodi on Android TV / Google TV."
+msgid "The licence server does not accept this device's Widevine module: only Kodi on Android plays this service (Android TV, phones, tablets)."
 msgstr ""
 
 msgctxt "#30013"

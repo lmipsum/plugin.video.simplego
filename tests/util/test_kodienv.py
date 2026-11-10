@@ -38,6 +38,12 @@ def test_unsure_counts_as_a_phone(kodi, monkeypatch, failure):
     assert kodienv.phone_or_tablet() is True  # a dead link on a TV costs nothing, a missing one strands a phone
 
 
+@pytest.mark.parametrize(("android", "expected"), [(True, False), (False, True)])
+def test_only_android_widevine_is_trusted(kodi, android, expected):
+    kodi.CONDITIONS["System.Platform.Android"] = android
+    assert kodienv.untrusted_widevine() is expected
+
+
 def test_off_android_nothing_is_asked(kodi, monkeypatch):
     calls = _getprop(monkeypatch, "phone")
     assert kodienv.phone_or_tablet() is False

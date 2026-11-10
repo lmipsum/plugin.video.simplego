@@ -28,11 +28,12 @@ def phone_or_tablet():
 
 
 def untrusted_widevine():
-    """Return whether Kodi runs on Windows or macOS, where playing is not even tried.
+    """Return whether Kodi runs off Android, where playing is not even tried.
 
-    Its desktop Widevine module is refused by the licence server (3099).
+    The licence server refuses the Widevine module InputStream Helper installs there (tried on
+    Windows, macOS, Linux and the Raspberry Pi).
     """
-    return xbmc.getCondVisibility("System.Platform.Windows") or xbmc.getCondVisibility("System.Platform.OSX")
+    return not android()
 
 
 def isa_ready():

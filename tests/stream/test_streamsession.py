@@ -56,6 +56,7 @@ def test_cancelling_where_to_resume_plays_nothing_and_closes_the_session(kodi, m
     with pytest.raises(provider.CancelledError):
         streamsession.resume_offset(client, info)
     # Cancelled as the stream starts: its session, already open, is closed at once.
+    kodi.CONDITIONS["System.Platform.Android"] = True
     monkeypatch.setattr(streamsession.parental, "gate", lambda client, channel, programme: None)
     monkeypatch.setattr(streamsession, "_positions_ahead", lambda client, programme: None)
     monkeypatch.setattr(streamsession, "programme_details", lambda client, channel, programme: None)

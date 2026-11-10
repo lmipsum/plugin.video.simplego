@@ -154,7 +154,7 @@ class ChannelViews:
     def channel_item(self, c, prog, following, playable, position):
         """Return a channel's row: the programme on air, in its channel's category colour.
 
-        `following` (if known) is the second line. Where it cannot play (Windows/macOS), a click
+        `following` (if known) is the second line. Where it cannot play (off Android), a click
         only shows why, with no stream session opened.
         """
         # The logo is in the row and the channel name on the info page: the label is the programme alone.

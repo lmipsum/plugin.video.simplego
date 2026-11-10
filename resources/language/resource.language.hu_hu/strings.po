@@ -27,8 +27,8 @@ msgid "Playback is refused from this internet address. Try without VPN / proxy, 
 msgstr "A szolgáltató erről az internetcímről nem engedi a lejátszást. Próbáld VPN / proxy nélkül, vagy másik kilépőponttal."
 
 msgctxt "#30012"
-msgid "The licence server does not trust this device's Widevine module (3099). On Windows/macOS Kodi this service cannot play; use Kodi on Android TV / Google TV."
-msgstr "A licencszerver nem fogadja el ennek az eszköznek a Widevine modulját (3099). Windowsos/macOS-es Kodin ez a szolgáltatás nem játszható le; Android TV-s / Google TV-s Kodival működik."
+msgid "The licence server does not accept this device's Widevine module: only Kodi on Android plays this service (Android TV, phones, tablets)."
+msgstr "A licencszerver nem fogadja el ennek az eszköznek a Widevine modulját: ezt a szolgáltatást csak androidos Kodi játssza le (Android TV, telefon, tablet)."
 
 msgctxt "#30013"
 msgid "The licence server refused playback (code %s)."
