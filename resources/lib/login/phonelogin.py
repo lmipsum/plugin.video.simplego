@@ -10,6 +10,9 @@ from resources.lib import kodiutil
 
 # Seconds the QR code waits for the phone.
 TIMEOUT = 900
+# Home window property set while a login runs: a second start waits for the first to end, since
+# the QR window may be seconds in coming up and the Log in button pressed twice.
+IN_PROGRESS = "%s.login_in_progress" % kodiutil.ADDON_ID
 
 
 def wait_for_token(client, timeout=TIMEOUT):
@@ -17,6 +20,19 @@ def wait_for_token(client, timeout=TIMEOUT):
 
     QR code -> page on the phone -> provider login -> the phone posts the result back.
     """
+    home = kodiutil.home()
+    if home.getProperty(IN_PROGRESS):
+        kodiutil.log("another login already running: this one left the QR window out", xbmc.LOGINFO)
+        return None
+    home.setProperty(IN_PROGRESS, "1")
+    try:
+        return _phone_login(client, timeout)
+    finally:
+        home.clearProperty(IN_PROGRESS)
+
+
+def _phone_login(client, timeout):
+    """Show the QR code and wait: see wait_for_token."""
     from resources.lib.login import loginserver
     from resources.lib.login import qrwindow
 
