@@ -87,7 +87,17 @@ def _catchup(channel, plugin_url):
 
 
 def export(
-    client, channels, profile_dir, plugin_url, past_days=1, days_ahead=7, info_types=(), block_dir=None, progress=None, stats=None
+    client,
+    channels,
+    profile_dir,
+    plugin_url,
+    past_days=1,
+    days_ahead=7,
+    info_types=(),
+    block_dir=None,
+    progress=None,
+    stats=None,
+    pause=None,
 ):
     """Write the playlist and guide.
 
@@ -97,6 +107,8 @@ def export(
     :param progress: progress(stage, done, total), stage "guide", "info", "build" or "compress";
         raising (Cancelled) stops the export before any file is written
     :param stats: a dict filled with each stage's duration and fetch counts
+    :param pause: pause() is called before each block and info page, from any of the export's threads;
+        it may wait (see util.pluginbusy)
     :return: (channel count, programme count)
     """
     out = os.path.join(profile_dir, OUT_DIR)
@@ -113,6 +125,7 @@ def export(
         stations=set(by_station),
         cache_dir=block_dir,
         progress=lambda done, total: report("guide", done, total),
+        pause=pause,
     )
     # (date, offset, whether the first, GuideBlock)
     blocks = [(date, offset, i == 0, block) for i, (date, offset, block) in enumerate(fetched)]
@@ -122,7 +135,7 @@ def export(
     if info_types:
         block_keys = _block_keys(blocks, by_station, info_types, out, stats)
         wanted = {_key(k) for _, own in block_keys for k in own}
-        pages = infopages.info_for(client, wanted, out, lambda done, total: report("info", done, total), stats)
+        pages = infopages.info_for(client, wanted, out, lambda done, total: report("info", done, total), stats, pause)
     stats["info"] = time.monotonic() - started
 
     report("build", 0, len(blocks))
@@ -141,6 +154,8 @@ def export(
         head = ['<?xml version="1.0" encoding="UTF-8"?>', '<tv generator-info-name="plugin.video.simplego">']
         add("\n".join(head + [_channel_xml(c) for c in channels]) + "\n")
         for done, (block, block_key) in enumerate(zip(blocks, keys), 1):
+            if pause:
+                pause()
             part = guide.xml(block, block_key)
             if part:
                 add(part + "\n")

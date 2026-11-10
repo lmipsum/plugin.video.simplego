@@ -331,3 +331,9 @@ def test_favourite_channels_are_a_group_of_their_own(tmp_path):
     assert m3u[1:3] == ["#EXTGRP:Simple GO;Kedvencek", "#EXTGRP:"]
     assert 'group-title="Simple GO"' in m3u[3]
     assert 'group-title="Simple GO;Kedvencek;Sport;Hír, info"' in m3u[5]
+
+
+def test_the_export_may_hold_before_each_block_it_writes(tmp_path):
+    paused, client = [], _client()
+    iptvfiles.export(client, CHANNELS, str(tmp_path), plugin_url, pause=lambda: paused.append(1))
+    assert len(paused) == len(client.blocks)  # the fake client's own fetches do not call it

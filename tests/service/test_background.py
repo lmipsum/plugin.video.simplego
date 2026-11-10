@@ -96,3 +96,18 @@ def test_getting_ready_ahead_asks_the_client(kodi, monkeypatch):
     background._get_ready()
     assert asked == [background.READY_AHEAD]
     assert not [m for m, level in kodi.LOG if "failed" in str(m)]  # renewed, not given up on
+
+
+def test_the_background_export_waits_for_plugin_calls(kodi, monkeypatch):
+    from resources.lib.service import background
+
+    passed = []
+
+    class Progress:
+        def close(self, result=None):
+            pass
+
+    monkeypatch.setattr(background.clientfactory, "make_client", lambda: object())
+    monkeypatch.setattr(background.kodipvr, "export", lambda client, progress, pause: passed.append(pause) or (1, 1))
+    background._export(Progress())
+    assert passed == [background.pluginbusy.wait_while_busy]

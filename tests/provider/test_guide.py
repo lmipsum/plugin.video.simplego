@@ -316,3 +316,10 @@ def test_a_block_already_over_is_looked_up_however_old(tmp_path):
     assert len(asked) == 1  # it is over: kept as it is
     guide.programme_at("1001", time.time(), str(tmp_path))
     assert len(asked) == 2  # the block on now is another one
+
+
+def test_an_export_may_hold_each_block_before_it_is_fetched():
+    guide = _guide(lambda date, offset: {})
+    paused = []
+    guide.epg_blocks(past_days=0, days_ahead=0, pause=lambda: paused.append(1))
+    assert len(paused) == BLOCKS_PER_DAY

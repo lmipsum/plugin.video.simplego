@@ -29,7 +29,7 @@ def keys_of(p):
     return [("program", p["program_id"])] if p.get("program_id") else []
 
 
-def info_for(client, wanted, out_dir, progress=None, stats=None):
+def info_for(client, wanted, out_dir, progress=None, stats=None, pause=None):
     """Return {(kind, id): {"actor": [...], "director": [...], "writer": [...]}} for these info page keys.
 
     The guide lacks the cast. Each page is fetched once and kept in out_dir/info.json;
@@ -37,6 +37,7 @@ def info_for(client, wanted, out_dir, progress=None, stats=None):
 
     :param wanted: the info page keys (see keys_of) of the programmes to add the cast to
     :param progress: progress(done, total) is called after each page fetched
+    :param pause: pause() is called before each page, by the thread fetching it; it may wait
     :param stats: gets the number of pages fetched ("pages")
     """
     path = os.path.join(out_dir, INFO_CACHE)
@@ -46,7 +47,7 @@ def info_for(client, wanted, out_dir, progress=None, stats=None):
     if stats is not None:
         stats["pages"] = len(missing)
     try:
-        _fetch_info(client, missing, cache, progress)
+        _fetch_info(client, missing, cache, progress, pause=pause)
     except BaseException:
         _write_info(path, cache)  # keep what was fetched so far
         raise
@@ -116,17 +117,24 @@ def _write_pages(path, kept):
     atomicfile.write_json(path, kept, ensure_ascii=False)
 
 
-def _fetch_info(client, keys, cache, progress=None, read=None):
+def _fetch_info(client, keys, cache, progress=None, read=None, pause=None):
     """Fetch the info pages `keys` into `cache`, a few at a time; failed ones are skipped.
 
     :param read: read(client, key) -> what to keep of a page, or None; its cast by default
+    :param pause: see info_for
     """
     from concurrent.futures import ThreadPoolExecutor
 
     read = read or _credits_of
+
+    def fetch(key):
+        if pause:
+            pause()
+        return read(client, key)
+
     pool = ThreadPoolExecutor(max_workers=INFO_WORKERS)
     try:
-        for done, (key, info) in enumerate(zip(keys, pool.map(lambda key: read(client, key), keys)), 1):
+        for done, (key, info) in enumerate(zip(keys, pool.map(fetch, keys)), 1):
             if info is not None:
                 cache[key] = info
             if progress:

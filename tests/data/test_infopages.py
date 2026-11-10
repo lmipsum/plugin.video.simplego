@@ -126,3 +126,10 @@ def test_pages_asked_again_need_no_client_and_leave_the_exports_file_alone(tmp_p
 def test_an_airings_episode_numbers_come_from_its_info_page(tmp_path):
     pages = {("program", "E1"): {"season_number": "2", "episode_number": 5}, ("program", "F1"): {"show_type": "Movie"}}
     assert infopages.episode_numbers(GuideClient(pages=pages), ["E1", "F1", None], str(tmp_path)) == {"E1": (2, 5)}
+
+
+def test_the_export_may_hold_each_page_fetch(tmp_path):
+    client = GuideClient(pages=EXPORT_PAGES)
+    paused = []
+    infopages.info_for(client, infopages.keys_of(MOVIE), str(tmp_path), pause=lambda: paused.append(len(client.asked)))
+    assert paused == [0] and client.asked == [("program", "M1")]  # held before it was asked

@@ -90,7 +90,7 @@ def wants_export(fingerprint, last):
     return fingerprint != last and repr(fingerprint) != kodiutil.home().getProperty(EXPORTED_PROPERTY)
 
 
-def export(client, restart=True, progress=None):
+def export(client, restart=True, progress=None, pause=None):
     """Rewrite the IPTV Simple playlist and guide.
 
     IPTV Simple re-reads files at the same paths on its own schedule. When our instance's
@@ -100,6 +100,7 @@ def export(client, restart=True, progress=None):
     One export at a time across Kodi's add-on processes; a second one waits.
 
     :param progress: see iptvfiles.export, plus the stages "wait" and "channels"
+    :param pause: see iptvfiles.export
     """
     report = progress or (lambda stage, done=0, total=0: None)
     home = kodiutil.home()
@@ -118,7 +119,7 @@ def export(client, restart=True, progress=None):
     before = home.getProperty(EXPORTED_PROPERTY)
     home.setProperty(EXPORTED_PROPERTY, repr(settings_fingerprint()))
     try:
-        return _export(client, restart, report)
+        return _export(client, restart, report, pause)
     except BaseException:
         home.setProperty(EXPORTED_PROPERTY, before)
         raise
@@ -126,7 +127,7 @@ def export(client, restart=True, progress=None):
         lock.release()
 
 
-def _export(client, restart, report):
+def _export(client, restart, report, pause):
     addon = kodiutil.addon()
     s = kodiutil.string
     base = "plugin://%s/" % kodiutil.ADDON_ID
@@ -146,6 +147,7 @@ def _export(client, restart, report):
         info_types=sorted(kodiutil.cast_kinds()),
         progress=report,
         stats=stats,
+        pause=pause,
     )
     kodiutil.log(
         "Kodi TV export: %d channels, %d programmes in %.1fs (channels %.1fs; guide %.1fs, %d blocks fetched, %d kept;"
