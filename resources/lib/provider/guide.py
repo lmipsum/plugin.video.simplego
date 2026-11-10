@@ -103,7 +103,7 @@ class Guide:
             guideblocks.drop_old_blocks(cache_dir)
         return channels
 
-    def epg_blocks(self, past_days=1, days_ahead=7, stations=None, cache_dir=None, progress=None):
+    def epg_blocks(self, past_days=1, days_ahead=7, stations=None, cache_dir=None, progress=None, pause=None):
         """Return the guide from `past_days` before today (UTC) to `days_ahead` after it, block by block.
 
         Days ahead stop at the first day without programmes (13 days published when
@@ -112,6 +112,7 @@ class Guide:
         :param stations: the station ids to keep (every block lists all of them)
         :param cache_dir: where the blocks are kept between calls (see GUIDE_FIELDS)
         :param progress: progress(done, total) is called after each block; what it raises ends the fetch
+        :param pause: pause() is called before each block, by the thread fetching it; it may wait
         :return: ([(date, offset, guideblocks.GuideBlock), ...] in time order,
             {"fetched": blocks fetched, "cached": kept blocks used})
         """
@@ -137,7 +138,7 @@ class Guide:
             for day in days:
                 date = time.strftime("%Y-%m-%d", time.gmtime(today + day * day_seconds))
                 kept.update(os.path.basename(guideblocks.block_path(cache_dir, date, offset)) for offset in offsets if cache_dir)
-                fetch = functools.partial(self._kept_or_fetched, date, cache_dir=cache_dir, stations=wanted)
+                fetch = functools.partial(self._kept_or_fetched, date, cache_dir=cache_dir, stations=wanted, pause=pause)
                 found = 0
                 for offset, (block, fetched) in zip(offsets, pool.map(fetch, offsets)):
                     counts["fetched" if fetched else "cached"] += 1
@@ -160,8 +161,10 @@ class Guide:
             return channels, False
         return self._fetch_block(date, offset, path, stations), True
 
-    def _kept_or_fetched(self, date, offset, cache_dir, stations):
+    def _kept_or_fetched(self, date, offset, cache_dir, stations, pause=None):
         """Return (guideblocks.GuideBlock, whether fetched) for epg_blocks: a kept block is not read yet."""
+        if pause:
+            pause()
         path = guideblocks.block_path(cache_dir, date, offset) if cache_dir else None
         header = guideblocks.block_header(path, stations, date, offset)
         if header is not None:

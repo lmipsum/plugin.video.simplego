@@ -86,7 +86,7 @@ def test_a_cancelled_switch_on_leaves_the_tv_menu_off(kodi, monkeypatch):
 def test_an_export_counts_for_its_settings_from_its_start(kodi, monkeypatch):
     seen = []
 
-    def running(client, restart, report):
+    def running(client, restart, report, pause):
         seen.append(kodi.PROPERTIES.get(kodipvr.EXPORTED_PROPERTY))
         raise RuntimeError("network down")
 

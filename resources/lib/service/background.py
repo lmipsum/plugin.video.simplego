@@ -12,6 +12,7 @@ from resources.lib.login import loginstate
 from resources.lib.service import playservice
 from resources.lib.tv import exportprogress
 from resources.lib.tv import kodipvr
+from resources.lib.util import pluginbusy
 
 HOUR = 3600
 # The first scheduled export and the first look ahead wait this long after the service starts: not
@@ -50,18 +51,20 @@ class _Monitor(xbmc.Monitor):
 def _export(progress):
     """Run one Kodi TV refresh, in its own thread so the playing streams are kept meanwhile.
 
+    Before each guide block and info page it waits for a plugin call on its way (see pluginbusy).
+
     :param progress: an exportprogress.BackgroundProgress (shown for a user's change), or a silent exportprogress.Progress
     """
     result = None
     try:
         client = clientfactory.make_client()
         try:
-            result = kodipvr.export(client, progress=progress)
+            result = kodipvr.export(client, progress=progress, pause=pluginbusy.wait_while_busy)
         except provider.AuthError as e:
             # A refused login: the public guide still keeps Kodi TV going.
             kodiutil.log("login refused (%s), exporting the public guide" % e, xbmc.LOGWARNING)
             client.guest = True
-            result = kodipvr.export(client, progress=progress)
+            result = kodipvr.export(client, progress=progress, pause=pluginbusy.wait_while_busy)
         kodiutil.log("Kodi TV files refreshed: %d channels, %d programmes" % result)
     except Exception as e:  # noqa: BLE001 - keep the service alive; the next round retries
         kodiutil.log("Kodi TV refresh failed: %s" % e, xbmc.LOGWARNING)
