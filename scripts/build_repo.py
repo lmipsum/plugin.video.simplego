@@ -2,6 +2,7 @@
 """Build the Kodi repository: the repository add-on's zip, and the folder GitHub Pages serves.
 
     build_repo.py zip <add-on folder>            dist/<id>-<version>.zip of a plain add-on folder
+    build_repo.py version                        the add-on's version, from addon.xml
     build_repo.py publish <pages folder> <zip>... add the zips to the served folder, rewrite its index
 
 The served folder's layout is Kodi's (https://kodi.wiki/view/Add-on_repositories): <id>/<id>-<version>.zip
@@ -29,18 +30,36 @@ def identity(addon_xml):
     return re.search(r'\bid="([^"]+)"', head).group(1), re.search(r'\bversion="([^"]+)"', head).group(1)
 
 
-def zip_folder(folder, out_dir):
-    """Zip an add-on folder as Kodi installs it (<id>/... inside); return the zip's path."""
+def folder_identity(folder):
+    """Return (id, version) of an add-on folder's addon.xml."""
     with open(os.path.join(folder, "addon.xml"), encoding="utf-8") as f:
-        addon_id, version = identity(f.read())
+        return identity(f.read())
+
+
+def zip_folder(folder, out_dir, include=None):
+    """Zip an add-on folder as Kodi installs it (<id>/... inside), without compiled Python; return the zip's path.
+
+    :param include: the files and folders to take, relative to the folder; None for all
+    """
+    addon_id, version = folder_identity(folder)
     out = os.path.join(out_dir, "%s-%s.zip" % (addon_id, version))
     os.makedirs(out_dir, exist_ok=True)
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
-        for d, _, files in os.walk(folder):
-            for name in sorted(files):
-                path = os.path.join(d, name)
-                z.write(path, "%s/%s" % (addon_id, os.path.relpath(path, folder).replace(os.sep, "/")))
+        for path in sorted(_files(folder, include)):
+            z.write(path, "%s/%s" % (addon_id, os.path.relpath(path, folder).replace(os.sep, "/")))
     return out
+
+
+def _files(folder, include):
+    """Yield the paths of the files to zip under folder."""
+    for item in include or [""]:
+        path = os.path.join(folder, item)
+        if os.path.isfile(path):
+            yield path
+            continue
+        for d, _, files in os.walk(path):
+            if "__pycache__" not in d:
+                yield from (os.path.join(d, name) for name in files if not name.endswith(".pyc"))
 
 
 def publish(pages, zips):
@@ -99,6 +118,9 @@ def write_index(pages):
 def main(argv):
     if len(argv) == 2 and argv[0] == "zip":
         print(zip_folder(os.path.join(ROOT, argv[1]), os.path.join(ROOT, "dist")))
+        return 0
+    if argv == ["version"]:
+        print(folder_identity(ROOT)[1])
         return 0
     if len(argv) >= 3 and argv[0] == "publish":
         publish(argv[1], argv[2:])

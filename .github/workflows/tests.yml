@@ -10,6 +10,8 @@ on:
     paths-ignore:
       - "**/*.md"
       - "LICENSE.txt"
+  # The build and release workflows run these checks first.
+  workflow_call:
 
 permissions:
   contents: read
@@ -59,7 +61,7 @@ jobs:
           python scripts/build_zip.py
           mkdir -p build && cd build
           unzip -q ../dist/*.zip
-          kodi-addon-checker --branch omega plugin.video.simplego
+          kodi-addon-checker --branch nexus plugin.video.simplego
 
   lint-actions:
     name: actionlint (the workflows)
@@ -71,7 +73,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: actionlint
         shell: bash
-        # No marketplace action; the install script and the binary are pinned to v1.7.12.
+        # No marketplace action; the release binary is pinned by its checksum.
+        env:
+          ACTIONLINT: actionlint_1.7.12_linux_amd64.tar.gz
+          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
         run: |
-          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
+          curl -fsSLO "https://github.com/rhysd/actionlint/releases/download/v1.7.12/$ACTIONLINT"
+          echo "$ACTIONLINT_SHA256  $ACTIONLINT" | sha256sum -c -
+          tar -xzf "$ACTIONLINT" actionlint
           ./actionlint -color
