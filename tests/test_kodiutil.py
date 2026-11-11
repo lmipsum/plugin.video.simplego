@@ -1,24 +1,42 @@
 """Kodi plumbing: settings, JSON-RPC, Kodi's own strings."""
 
+import pytest
+
 from resources.lib import kodiutil
 
 
-def test_jsonrpc_errors_read_as_no_answer(kodi):
+def test_a_jsonrpc_error_reads_as_no_answer(kodi):
     assert kodiutil.kodi_setting("locale.audiolanguage", "default") == "default"
+
+
+def test_a_jsonrpc_answer_gives_the_settings_value(kodi):
     kodi.JSONRPC["Settings.GetSettingValue"] = {"value": "original"}
     assert kodiutil.kodi_setting("locale.audiolanguage") == "original"
 
 
-def test_settings_are_written_only_when_they_change(monkeypatch):
+@pytest.fixture
+def written(kodi, monkeypatch):
+    """The settings written, as (key, value)."""
     import xbmcaddon
 
-    written = []
-    monkeypatch.setattr(xbmcaddon.Addon, "setSettingBool", lambda self, key, value: written.append((key, value)), raising=False)
-    monkeypatch.setattr(xbmcaddon.Addon, "setSettingInt", lambda self, key, value: written.append((key, value)), raising=False)
+    writes = []
+    monkeypatch.setattr(xbmcaddon.Addon, "setSettingBool", lambda self, key, value: writes.append((key, value)), raising=False)
+    monkeypatch.setattr(xbmcaddon.Addon, "setSettingInt", lambda self, key, value: writes.append((key, value)), raising=False)
     monkeypatch.setattr(kodiutil, "addon", xbmcaddon.Addon)
+    return writes
+
+
+def test_a_setting_set_to_its_value_is_not_written(written):
+    import xbmcaddon
+
     kodiutil.set_setting("parental_adult", xbmcaddon.Addon().getSettingBool("parental_adult"))
     kodiutil.set_setting("parental_age", xbmcaddon.Addon().getSettingInt("parental_age"))
     assert written == []  # each write would be a settings change to the service
+
+
+def test_a_changed_setting_is_written(written):
+    import xbmcaddon
+
     kodiutil.set_setting("parental_adult", not xbmcaddon.Addon().getSettingBool("parental_adult"))
     assert len(written) == 1
 

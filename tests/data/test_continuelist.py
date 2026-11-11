@@ -3,8 +3,8 @@
 from kodiside import continue_at
 
 
-def test_continue_watching_keeps_watched_and_reset_rows_greyed_until_they_leave_catch_up(monkeypatch, tmp_path):
-    continuelist = continue_at(monkeypatch, tmp_path)
+def test_continue_watching_keeps_watched_and_reset_rows_greyed_until_they_leave_catch_up(monkeypatch):
+    continuelist = continue_at(monkeypatch)
     ACTIVE, WATCHED, REMOVED = continuelist.ACTIVE, continuelist.WATCHED, continuelist.REMOVED
 
     def mark(n, share=0.5, end="2026-10-28T21:00:00Z"):
@@ -22,12 +22,12 @@ def test_continue_watching_keeps_watched_and_reset_rows_greyed_until_they_leave_
     # Back in the list (watched again): active again; the greyed ones below.
     assert continuelist.rows([mark(2)])[0] == (mark(2), ACTIVE)
     # A week after the programme ended: no longer listed, nor kept.
-    later = continue_at(monkeypatch, tmp_path, now="2026-11-04T21:00:01Z")
+    later = continue_at(monkeypatch, now="2026-11-04T21:00:01Z")
     assert later.rows([]) == [] and later._load() == {}
 
 
-def test_a_row_is_found_by_its_airing_and_dropped_for_good(monkeypatch, tmp_path):
-    continuelist = continue_at(monkeypatch, tmp_path)
+def test_a_row_is_found_by_its_airing_and_dropped_for_good(monkeypatch):
+    continuelist = continue_at(monkeypatch)
     mark = {"id": "1_2026-10-28T20:00:00Z_2026-10-28T21:00:00Z", "time_seconds": 600, "runtime_seconds": 3600}
     assert continuelist.find("1", "2026-10-28T20:00:00Z", [mark]) == mark  # the account's position
     continuelist.rows([mark])

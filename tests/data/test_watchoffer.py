@@ -6,7 +6,7 @@ from resources.lib.data import channellist
 from resources.lib.data import onair
 from resources.lib.data import watchoffer
 
-EPISODE = {"description": "Doktor Balaton", "series_id": "S1", "program_id": "P1", "genres": [{"name": "Sorozatok"}]}
+EPISODE = {"description": "Some Series", "series_id": "S1", "program_id": "P1", "genres": [{"name": "Sorozatok"}]}
 FILM = {"description": "Indiana Jones és az utolsó kereszteslovag", "program_id": "P2", "show_type": "Movie"}
 LATER = {"station_id": "1246", "start_utc": "2099-11-05T19:00:00Z"}
 
@@ -34,7 +34,7 @@ class Client:
 def guide(monkeypatch, programme):
     asked = []
     monkeypatch.setattr(onair, "on_air", lambda client, station, when: asked.append((station, when)) or (programme, None))
-    monkeypatch.setattr(channellist, "by_station", lambda client: {"1246": {"name": "Mozi+ HD"}})
+    monkeypatch.setattr(channellist, "by_station", lambda client: {"1246": {"name": "Movies HD"}})
     monkeypatch.setattr(watchoffer.localtime, "local_time", lambda iso: "2099.11.05. 20:00")
     return asked
 
@@ -43,7 +43,7 @@ def test_a_series_is_offered_as_a_whole_and_a_film_itself_with_its_next_airing(m
     asked = guide(monkeypatch, EPISODE)
     client = Client()
     offered = watchoffer.offer(client, "18569", "2026-10-29T13:50:00Z")
-    assert offered == {"id": "S1", "kind": "series", "title": "Doktor Balaton", "next": "2099.11.05. 20:00, Mozi+ HD"}
+    assert offered == {"id": "S1", "kind": "series", "title": "Some Series", "next": "2099.11.05. 20:00, Movies HD"}
     assert asked == [("1246", "2026-10-29T13:50:00Z")] and client.asked == [("S1", "series")]
     guide(monkeypatch, FILM)
     assert watchoffer.offer(Client(), "18569", "2026-10-29T13:50:00Z")["id"] == "P2"
@@ -68,8 +68,8 @@ def test_a_play_address_without_a_programme_offers_nothing(monkeypatch):
     assert watchoffer.offer_for_play(Client(), "18569", "2026-10-29T13:50:00Z~2026-10-29T16:20:00Z~ct~12~start")["id"] == "P2"
 
 
-def test_with_no_favourite_to_offer_its_continue_watching_row_is_offered_off_the_list(monkeypatch, tmp_path):
-    continue_at(monkeypatch, tmp_path)
+def test_with_no_favourite_to_offer_its_continue_watching_row_is_offered_off_the_list(monkeypatch):
+    continue_at(monkeypatch)
     guide(monkeypatch, FILM)
     play = "2026-10-29T13:50:00Z~2026-10-29T16:20:00Z~ct~12~start"
     # Not on again: the row instead (the account's position here).

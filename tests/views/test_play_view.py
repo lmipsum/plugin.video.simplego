@@ -71,9 +71,6 @@ def play(kodi, monkeypatch):
     monkeypatch.setattr(playitem, "spec", lambda stream, manifest, licence, major: {"path": manifest})
     monkeypatch.setattr(resolveditem, "list_item", lambda spec: spec["path"])
     monkeypatch.setattr(xbmcplugin, "setResolvedUrl", lambda handle, ok, li: resolved.append((ok, li)), raising=False)
-    # Android with InputStream Adaptive: InputStream Helper has nothing to check.
-    kodi.CONDITIONS["System.Platform.Android"] = True
-    kodi.CONDITIONS["System.AddonIsEnabled(inputstream.adaptive)"] = True
 
     def make(query):
         client = Account()

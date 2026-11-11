@@ -25,7 +25,7 @@ class Client:
 G = "[COLOR grey]%s[/COLOR]"
 
 
-CHANNEL = {"id": "C1", "media_id": "M", "number": 1, "name": "M1", "logo": "logo.png", "genres": []}
+CHANNEL = {"id": "C1", "media_id": "M", "number": 1, "name": "Channel One", "logo": "logo.png", "genres": []}
 
 
 ON_AIR = {
@@ -53,14 +53,13 @@ def channel_list():
     return channels.ChannelViews(call("?action=channels"))
 
 
-def continue_at(monkeypatch, tmp_path, now="2026-10-29T12:00:00Z"):
-    """Keep Continue watching's rows in tmp_path, at a fixed time (the positions' programmes stay on catch-up)."""
+def continue_at(monkeypatch, now="2026-10-29T12:00:00Z"):
+    """Set Continue watching's clock to a fixed time (the positions' programmes stay on catch-up)."""
     import types
 
     from resources.lib.data import continuelist
     from resources.lib.util import isotime
 
-    monkeypatch.setattr(continuelist, "KEPT", str(tmp_path / "continue.json"))
     monkeypatch.setattr(continuelist, "time", types.SimpleNamespace(time=lambda: isotime.stamp(now)))
     return continuelist
 
@@ -72,3 +71,25 @@ NEWER = dict(OLD, start_utc="2026-10-29T21:30:00Z", end_utc="2026-10-29T23:45:00
 
 
 COMING = dict(OLD, start_utc="2099-01-01T20:00:00Z", end_utc="2099-01-01T22:00:00Z")
+
+
+class GuideClient:
+    """A client as the TV export and the info pages see it: the guide's blocks and info pages as given.
+
+    :param blocks: the guide's blocks, each (date, offset, {station: [programme, ...]})
+    :param pages: {(kind, item_id): info page}
+    """
+
+    def __init__(self, *blocks, pages=None):
+        self.blocks = list(blocks)
+        self.pages = pages or {}
+        self.asked = []  # (kind, item_id) of each info page asked for
+
+    def epg_blocks(self, **kw):
+        from resources.lib.provider.guideblocks import GuideBlock
+
+        return [(date, offset, GuideBlock(channels=channels)) for date, offset, channels in self.blocks], {}
+
+    def details(self, kind, item_id):
+        self.asked.append((kind, item_id))
+        return self.pages[(kind, item_id)]

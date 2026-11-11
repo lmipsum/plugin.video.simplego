@@ -10,13 +10,13 @@ from resources.lib.util import localtime
 from resources.lib.views import listing
 
 
-def test_continue_watching_rows_show_the_programme_its_episode_poster_and_length(kodi, monkeypatch, tmp_path):
+def test_continue_watching_rows_show_the_programme_its_episode_poster_and_length(kodi, monkeypatch):
     import xbmcplugin
 
     from resources.lib import plugin
     from resources.lib.data import infopages
 
-    continue_at(monkeypatch, tmp_path)
+    continue_at(monkeypatch)
     monkeypatch.setattr(localtime, "local_date", lambda stamp: "2026.11.04.")
 
     added = []
@@ -24,7 +24,7 @@ def test_continue_watching_rows_show_the_programme_its_episode_poster_and_length
     pages = {("program", "F-1"): {"type": "movie", "year": 2017}, ("program", "AB-1"): {"type": "series", "year": 2010}}
     kept = lambda client, keys, out_dir, full=True: {k: pages[k] for k in keys if k in pages}  # noqa: E731
     monkeypatch.setattr(infopages, "pages_for", kept)
-    channel = {"id": "C1", "media_id": "M", "name": "M1", "logo": "logo.png"}
+    channel = {"id": "C1", "media_id": "M", "name": "Channel One", "logo": "logo.png"}
     monkeypatch.setattr(channellist, "by_station", lambda client: {"1": channel})
 
     class Client:
@@ -44,7 +44,7 @@ def test_continue_watching_rows_show_the_programme_its_episode_poster_and_length
     plugin.Plugin(["plugin://plugin.video.simplego/", "1", "?action=continue"]).run()
     tag = added[0].getVideoInfoTag()
     assert tag["MediaType"] == "episode" and (tag["Season"], tag["Episode"]) == (2, 5)
-    assert tag["Studios"] == ["M1"] and tag["Duration"] == 3600 and tag["VideoStream"] == {"duration": 3600}
+    assert tag["Studios"] == ["Channel One"] and tag["Duration"] == 3600 and tag["VideoStream"] == {"duration": 3600}
     assert added[0].art["poster"].endswith("/program/ab-1/2x3/keyartxlarge.jpg")  # the side panel: the programme's
     # One line: the programme (its episode); no logo, no channel. No date: when it leaves catch-up varies by channel.
     assert added[0].label == "Sorozat" + G % " | S2E5"
@@ -65,14 +65,14 @@ def test_continue_watching_rows_show_the_programme_its_episode_poster_and_length
         assert li.properties["IsPlayable"] == "false" and li.getVideoInfoTag()["ResumePoint"]
 
 
-def test_a_continue_watching_row_resumes_plays_from_the_beginning_or_resets_its_position(kodi, monkeypatch, tmp_path):
+def test_a_continue_watching_row_resumes_plays_from_the_beginning_or_resets_its_position(kodi, monkeypatch):
     """A click: Kodi's resume question in its own words, plus resetting the position (deleting it)."""
     import xbmcgui
 
     from resources.lib import plugin
     from resources.lib.service import quickplay
 
-    continuelist = continue_at(monkeypatch, tmp_path)
+    continuelist = continue_at(monkeypatch)
 
     mark = {"id": "1_2026-10-28T20:00:00Z_2026-10-28T21:00:00Z", "program_id": "AB-1", "runtime_seconds": 3600}
     calls, ran, asked = [], [], []
@@ -107,7 +107,7 @@ def test_a_continue_watching_row_resumes_plays_from_the_beginning_or_resets_its_
     assert ran[0].startswith("PlayMedia(") and "~continue" in ran[0].replace("%7E", "~")
     pick(1)  # from the beginning
     assert "~start" in ran[0].replace("%7E", "~")
-    pick(2)  # reset: the web's own delete, then the list again, the row kept greyed out
+    pick(2)  # reset: the delete, then the list again, the row kept greyed out
     assert calls == [("delete", [mark["id"]])] and ran == ["Container.Refresh"]
     assert continuelist.rows([]) == [(dict(mark, title="Film", time_seconds=985, bookmark_type="Catchup"), "removed")]
     fail = True
@@ -126,14 +126,14 @@ def test_a_continue_watching_row_resumes_plays_from_the_beginning_or_resets_its_
     assert menus == [] and "action=play" in asked[0][2] and "~resume" in asked[0][2].replace("%7E", "~")
 
 
-def test_a_greyed_row_can_be_removed_for_good_from_its_context_menu(kodi, monkeypatch, tmp_path):
+def test_a_greyed_row_can_be_removed_for_good_from_its_context_menu(kodi, monkeypatch):
     import xbmcgui
     import xbmcplugin
 
     from resources.lib import plugin
     from resources.lib.data import infopages
 
-    continuelist = continue_at(monkeypatch, tmp_path)
+    continuelist = continue_at(monkeypatch)
     mark = {"id": "1_2026-10-28T20:00:00Z_2026-10-28T21:00:00Z", "title": "Film", "program_id": "F-1", "runtime_seconds": 3600}
     continuelist.rows([dict(mark, time_seconds=600)])  # listed once; gone from the account since: greyed
     account, deleted, ran, menus = [], [], [], []
@@ -150,7 +150,7 @@ def test_a_greyed_row_can_be_removed_for_good_from_its_context_menu(kodi, monkey
 
     monkeypatch.setattr(clientfactory, "make_client", Client)
     monkeypatch.setattr(infopages, "pages_for", lambda client, keys, out_dir, full=True: {})
-    monkeypatch.setattr(channellist, "by_station", lambda client: {"1": {"id": "C1", "media_id": "M", "name": "M1"}})
+    monkeypatch.setattr(channellist, "by_station", lambda client: {"1": {"id": "C1", "media_id": "M", "name": "Channel One"}})
     monkeypatch.setattr(xbmcgui.ListItem, "addContextMenuItems", lambda self, items: menus.append(items), raising=False)
     monkeypatch.setattr(xbmcplugin, "addDirectoryItem", lambda handle, url, li, isFolder=False: None, raising=False)
     monkeypatch.setattr(kodi.xbmc, "executebuiltin", lambda command, wait=False: ran.append(command))

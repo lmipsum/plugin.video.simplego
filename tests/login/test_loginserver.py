@@ -7,7 +7,7 @@ import pytest
 
 from resources.lib.login import loginserver
 
-TOKEN_URL = "https://player.telekomtvgo.hu/robots.txt?oauth=x&access_token=AAA&refresh_token=aaaa.bbbb.cccc"
+TOKEN_URL = "https://player.example/robots.txt?oauth=x&access_token=AAA&refresh_token=aaaa.bbbb.cccc"
 
 
 @pytest.fixture

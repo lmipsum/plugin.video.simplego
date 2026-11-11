@@ -14,7 +14,7 @@ from resources.lib.views import listing
 def test_a_channel_row_shows_what_comes_next_and_the_programme_on(monkeypatch):
     monkeypatch.setattr(localtime, "local_time", lambda iso, date=True: "21:05")
     p = channel_list()
-    channel = {"number": 1, "name": "M1", "logo": "logo.png", "genres": []}
+    channel = {"number": 1, "name": "Channel One", "logo": "logo.png", "genres": []}
     on = {
         "description": "Film",
         "full_description": "Plot.",
@@ -73,7 +73,7 @@ def test_a_channel_row_fills_the_side_panel_and_the_info_page():
     bare = p.channel_item(dict(CHANNEL, logo="https://x/station/1008/4x3/logomedium.png"), {}, None, False, True)
     assert bare.art["thumb"].endswith("/logolarge.png") and "tvshow.poster" not in bare.art
     assert li.art["tvshow.poster"].endswith("/program/ab-1/2x3/keyartxlarge.jpg")
-    assert tag["Title"] == "Első rész" and tag["Studios"] == ["M1"] and tag["Duration"] == 45 * 60
+    assert tag["Title"] == "Első rész" and tag["Studios"] == ["Channel One"] and tag["Duration"] == 45 * 60
     # Its stream's length too: else Kodi shows the one it kept from playing the channel (its live window).
     assert tag["VideoStream"] == {"duration": 45 * 60}
     assert tag["Tags"] == ["Audio description", "Sign language"]
@@ -98,7 +98,7 @@ def test_a_channel_row_names_the_programme_with_its_start_and_episode(kodi, monk
     assert p.channel_item(CHANNEL, numbered, None, True, 0).label == "21:00 Sorozat" + G % " | S1E10: Első rész"
     plain = dict(ON_AIR, episode_name="")
     assert p.channel_item(CHANNEL, plain, None, True, 0).label == "21:00 Sorozat"
-    assert p.channel_item(CHANNEL, {}, None, True, 0).label == "M1"  # nothing known on air
+    assert p.channel_item(CHANNEL, {}, None, True, 0).label == "Channel One"  # nothing known on air
     kodi.SETTINGS["colours"] = True  # the "Category colours" setting (off by default)
     p = channel_list()
     coloured = p.channel_item(dict(CHANNEL, genres=["Sport"]), plain, None, True, 0).label
@@ -140,7 +140,7 @@ def test_the_channel_list_has_the_cast_and_colours_the_settings_ask_for(kodi, mo
     news = dict(times, program_id="N1", description="Híradó")
     channels = [
         {"id": "C1", "media_id": "M", "station_id": "1", "number": 1, "name": "Film+", "logo": "", "genres": ["Sport"]},
-        {"id": "C2", "media_id": "M", "station_id": "2", "number": 2, "name": "M1", "logo": "", "genres": []},
+        {"id": "C2", "media_id": "M", "station_id": "2", "number": 2, "name": "Channel One", "logo": "", "genres": []},
     ]
     view = {"channels": channels, "now": {"1": film, "2": news}, "subscribed": None, "favourites": None, "ordered": False}
 
@@ -226,14 +226,14 @@ def test_a_channel_outside_the_subscription_says_its_cheapest_package(kodi, monk
     class Client:
         def offers(self, program_id):
             asked.append(program_id)
-            offer = {"package_name": "Telekom TV M csomag", "price": 6990, "currency": "HUF"}
-            return [offer, dict(offer, package_name="Telekom TV L csomag", price=9990.0)]
+            offer = {"package_name": "Package M", "price": 6990, "currency": "HUF"}
+            return [offer, dict(offer, package_name="Package L", price=9990.0)]
 
     monkeypatch.setattr(clientfactory, "make_client", Client)
     plugin.run(["plugin://plugin.video.simplego/", "-1", "?action=not_subscribed&station=1010"])
     assert asked == ["P-1010"]
     assert [m for m, kind in kodi.LOG if kind == "ok"] == [
-        "Channel not in your subscription. Available in: Telekom TV M csomag (6990 Ft/month)"
+        "Channel not in your subscription. Available in: Package M (6990 Ft/month)"
     ]
     # Nothing known (no programme, no offer): the service's own refusal, in its words.
     monkeypatch.setattr(onair, "on_air", lambda client, station, when: (None, None))

@@ -25,7 +25,6 @@ def _getprop(monkeypatch, answer):
     ("characteristics", "expected"), [("phone", True), ("tablet", True), ("default", True), ("tv,nosdcard", False), ("tv", False)]
 )
 def test_an_android_tv_build_is_no_phone(kodi, monkeypatch, characteristics, expected):
-    kodi.CONDITIONS["System.Platform.Android"] = True
     calls = _getprop(monkeypatch, characteristics)
     assert kodienv.phone_or_tablet() is expected
     assert calls == [["getprop", "ro.build.characteristics"]]
@@ -33,7 +32,6 @@ def test_an_android_tv_build_is_no_phone(kodi, monkeypatch, characteristics, exp
 
 @pytest.mark.parametrize("failure", [OSError("no getprop"), subprocess.TimeoutExpired("getprop", 2)])
 def test_unsure_counts_as_a_phone(kodi, monkeypatch, failure):
-    kodi.CONDITIONS["System.Platform.Android"] = True
     _getprop(monkeypatch, failure)
     assert kodienv.phone_or_tablet() is True  # a dead link on a TV costs nothing, a missing one strands a phone
 
@@ -45,6 +43,7 @@ def test_only_android_widevine_is_trusted(kodi, android, expected):
 
 
 def test_off_android_nothing_is_asked(kodi, monkeypatch):
+    kodi.CONDITIONS["System.Platform.Android"] = False
     calls = _getprop(monkeypatch, "phone")
     assert kodienv.phone_or_tablet() is False
     assert calls == []

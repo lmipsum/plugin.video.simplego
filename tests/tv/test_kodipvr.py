@@ -59,14 +59,10 @@ def test_switching_the_tv_menu_off_removes_only_ours(kodi):
     for name in exported + ("info.json",):
         open(os.path.join(out, name), "w").close()
     kodi.SETTINGS.update(pvr_enabled=True, pvr_last="yesterday")
-    try:
-        kodipvr.switch_off()
-        assert not os.path.exists(ours) and os.path.exists(other)
-        assert sorted(os.listdir(out)) == ["info.json"]  # the cast stays: the plugin's lists use it too
-        assert kodi.SETTINGS["pvr_enabled"] is False and kodi.SETTINGS["pvr_last"] == ""
-    finally:
-        os.remove(other)
-        os.remove(os.path.join(out, "info.json"))
+    kodipvr.switch_off()
+    assert not os.path.exists(ours) and os.path.exists(other)
+    assert sorted(os.listdir(out)) == ["info.json"]  # the cast stays: the plugin's lists use it too
+    assert kodi.SETTINGS["pvr_enabled"] is False and kodi.SETTINGS["pvr_last"] == ""
 
 
 def test_a_cancelled_switch_on_leaves_the_tv_menu_off(kodi, monkeypatch):

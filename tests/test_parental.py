@@ -6,10 +6,10 @@ from kodiside import Client
 from resources.lib import kodiutil
 from resources.lib import parental
 from resources.lib import provider
+from resources.lib.data import guidedata
 
 
-def test_the_lock_starts_as_the_web_player_does(lock_settings):
-    # No age limit, unrated programmes locked, adult channels hidden.
+def test_the_lock_starts_with_no_age_limit_and_unrated_and_adult_locked(lock_settings):
     assert parental.settings() == {"age": 0, "unrated": True, "adult": False}
     assert not parental.locked(16)
     assert parental.locked(None)
@@ -19,7 +19,7 @@ def test_the_lock_starts_as_the_web_player_does(lock_settings):
 def test_an_age_limit_locks_that_age_and_above(lock_settings):
     parental.save({"age": 16, "unrated": False, "adult": True})
     assert kodiutil.addon().getSettingInt("parental_age") == 16  # the settings' read-only row follows
-    assert not parental.locked(12) and parental.locked(16) and parental.locked(19)
+    assert not parental.locked(12) and parental.locked(16) and parental.locked(guidedata.ADULT_AGE)
     assert not parental.locked(None) and not parental.locked(12, adult=True)
 
 

@@ -1,3 +1,5 @@
+import pytest
+
 from resources.lib.data import guidedata
 
 
@@ -17,11 +19,11 @@ def test_programme_type():
 
 def test_rating_ages_and_the_programme_param():
     ratings = ("18+", "18", "16+", "12", "0-99", "", None, "?")
-    assert [guidedata.rating_age(r) for r in ratings] == [19, 18, 16, 12, 0, None, None, None]
+    assert [guidedata.rating_age(r) for r in ratings] == [guidedata.ADULT_AGE, 18, 16, 12, 0, None, None, None]
     p = {"start_time": "2026-10-26T22:00:00Z", "end_time": "2026-10-26T23:15:00Z", "content_flags": ["ct"], "ratings": "18+"}
     param = guidedata.param(p)
-    assert param.endswith("~ct~19") and "+" not in param  # it travels in a URL unencoded
-    assert guidedata.from_param(param)["age"] == 19
+    assert param.endswith("~ct~%d" % guidedata.ADULT_AGE) and "+" not in param  # it travels in a URL unencoded
+    assert guidedata.from_param(param)["age"] == guidedata.ADULT_AGE
     assert guidedata.from_param(guidedata.param(dict(p, ratings="")))["age"] is None
     assert "age" not in guidedata.from_param("2026-10-26T22:00:00Z~2026-10-26T23:15:00Z~ct")  # no age given
 
@@ -55,3 +57,8 @@ def test_watched_back_and_restarted_by_the_guide_flags():
     assert guidedata.watchable_back({"content_flags": ["ct", "rn"]}) and not guidedata.restartable({"content_flags": ["rn"]})
     assert not guidedata.watchable_back({"content_flags": None}) and guidedata.restartable({"content_flags": None})
     assert guidedata.restartable({"content_flags": ["ct"]})
+
+
+@pytest.mark.parametrize("text", ["", "x~y~z"])
+def test_a_text_that_is_no_programme_param_reads_as_none(text):
+    assert guidedata.from_param(text) is None

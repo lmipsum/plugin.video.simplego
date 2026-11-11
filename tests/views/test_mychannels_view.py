@@ -10,14 +10,13 @@ from resources.lib.views import listing
 from resources.lib.views import mychannels
 
 
-def test_my_channels_manage_every_channel_and_play_none(kodi, monkeypatch, tmp_path):
+def test_my_channels_manage_every_channel_and_play_none(kodi, monkeypatch):
     """A star for a favourite, "Not subscribed" said, a click opens the same menu as a long press."""
     import xbmcgui
     import xbmcplugin
 
     from resources.lib import plugin
 
-    monkeypatch.setattr(channellist, "DEACTIVATED", str(tmp_path / "deactivated.json"))
     p = mychannels.MyChannelsViews(call("?action=mychannels"))
     added, menus = [], []
     monkeypatch.setattr(
