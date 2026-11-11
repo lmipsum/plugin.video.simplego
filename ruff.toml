@@ -1,6 +1,6 @@
-# Kodi 20/21 on older Linux distributions runs on Python 3.8, so the syntax stays 3.8-compatible.
+# Kodi 20 and 21 on Android run on Python 3.11 (tools/depends/target/python3 in Kodi's source).
 line-length = 130
-target-version = "py38"
+target-version = "py311"
 
 [lint]
 select = [

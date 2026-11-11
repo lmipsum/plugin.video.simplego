@@ -140,7 +140,7 @@ class Guide:
                 kept.update(os.path.basename(guideblocks.block_path(cache_dir, date, offset)) for offset in offsets if cache_dir)
                 fetch = functools.partial(self._kept_or_fetched, date, cache_dir=cache_dir, stations=wanted, pause=pause)
                 found = 0
-                for offset, (block, fetched) in zip(offsets, pool.map(fetch, offsets)):
+                for offset, (block, fetched) in zip(offsets, pool.map(fetch, offsets), strict=True):
                     counts["fetched" if fetched else "cached"] += 1
                     blocks.append((date, offset, block))
                     found += block.programmes

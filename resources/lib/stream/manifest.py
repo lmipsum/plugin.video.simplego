@@ -140,7 +140,7 @@ class ManifestRewriter:
             return
         tasks = [("init", url) for url in wanted] + [("fragment", url) for url in set(wanted.values()) if url]
         with ThreadPoolExecutor(max_workers=8) as pool:
-            found = dict(zip(tasks, pool.map(self._fetch_keys, tasks)))
+            found = dict(zip(tasks, pool.map(self._fetch_keys, tasks), strict=True))
         for url, segment in wanted.items():
             if segment and not from_start:  # the fragment a live refresh would read first (see _watch_live_keys)
                 self._live_last = dict(self._live_last or {}, **{url: segment})
@@ -178,7 +178,7 @@ class ManifestRewriter:
             return
         with ThreadPoolExecutor(max_workers=len(checks)) as pool:
             kids = list(pool.map(self._live_kid, [url for *_, url in checks]))
-        for (aset, init, declared, start, url), kid in zip(checks, kids):
+        for (aset, init, declared, start, url), kid in zip(checks, kids, strict=True):
             if kid is None:
                 continue  # unread: tried again at the next refresh
             last[init] = url
@@ -362,7 +362,7 @@ class ManifestRewriter:
         first = video.segments[0][0] / video.scale
         self.found_changes = found
         self.change_times = tuple(seconds - first for seconds, _, _ in out)
-        for offset, (_, _, protection) in zip(self.change_times, out):
+        for offset, (_, _, protection) in zip(self.change_times, out, strict=True):
             kids = ", ".join(sorted({p[1] for p in protection.values()}))
             self._debug("key change %.0f s into the stream: %s" % (offset, kids))
         if out:
@@ -375,7 +375,7 @@ class ManifestRewriter:
         index = found[keychanges.video_index(track_groups)][k]
         seconds = video.segments[index][0] / video.scale
         starts, protection = {}, {}
-        for group, indexes in zip(track_groups, found):
+        for group, indexes in zip(track_groups, found, strict=True):
             starts[group.aset] = indexes[k]
             pssh, kid = key(group, indexes[k])
             if not kid:

@@ -103,7 +103,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--write", action="store_true", help="replace the certificates and the test's fingerprints")
     args = parser.parse_args()
-    found = dict(zip(("intermediate", "cross_signed"), chain()))
+    found = dict(zip(("intermediate", "cross_signed"), chain(), strict=True))
     changed = False
     for role, cert in found.items():
         path = os.path.join(CERTS, FILES[role])
@@ -134,7 +134,7 @@ def main():
 
 
 def _now():
-    return datetime.datetime.now(datetime.timezone.utc)
+    return datetime.datetime.now(datetime.UTC)
 
 
 if __name__ == "__main__":

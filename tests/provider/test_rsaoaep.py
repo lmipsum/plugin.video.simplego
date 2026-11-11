@@ -46,8 +46,8 @@ def _decrypt(ciphertext, n, d):
     em = pow(int.from_bytes(base64.b64decode(ciphertext), "big"), d, n).to_bytes(size, "big")
     hlen = 20
     masked_seed, masked_block = em[1 : 1 + hlen], em[1 + hlen :]
-    seed = bytes(a ^ b for a, b in zip(masked_seed, rsaoaep._mgf1(masked_block, hlen)))
-    block = bytes(a ^ b for a, b in zip(masked_block, rsaoaep._mgf1(seed, size - hlen - 1)))
+    seed = bytes(a ^ b for a, b in zip(masked_seed, rsaoaep._mgf1(masked_block, hlen), strict=True))
+    block = bytes(a ^ b for a, b in zip(masked_block, rsaoaep._mgf1(seed, size - hlen - 1), strict=True))
     assert em[0] == 0 and block[:hlen] == hashlib.sha1(b"").digest()
     return block[block.index(b"\x01", hlen) + 1 :]
 

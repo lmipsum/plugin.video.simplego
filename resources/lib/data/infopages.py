@@ -134,7 +134,7 @@ def _fetch_info(client, keys, cache, progress=None, read=None, pause=None):
 
     pool = ThreadPoolExecutor(max_workers=INFO_WORKERS)
     try:
-        for done, (key, info) in enumerate(zip(keys, pool.map(fetch, keys)), 1):
+        for done, (key, info) in enumerate(zip(keys, pool.map(fetch, keys), strict=True), 1):
             if info is not None:
                 cache[key] = info
             if progress:

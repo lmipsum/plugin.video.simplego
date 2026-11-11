@@ -11,6 +11,7 @@ back,) stops, then reads the log lines written meanwhile. Exits 1 if a check fai
 """
 
 import argparse
+import itertools
 import json
 import re
 import socket
@@ -84,7 +85,7 @@ class JsonRpc:
         del self.notifications[:]
         try:
             return self._read_until(lambda m: m.get("method") == method, timeout)
-        except socket.timeout:
+        except TimeoutError:
             return None
 
     def _read_until(self, wanted, timeout):
@@ -97,7 +98,7 @@ class JsonRpc:
                 self.notifications.append(message)
             left = deadline - time.time()
             if left <= 0:
-                raise socket.timeout("no answer in %d s" % timeout)
+                raise TimeoutError("no answer in %d s" % timeout)
             self._sock.settimeout(left)
             data = self._sock.recv(65536)
             if not data:
@@ -140,7 +141,7 @@ def analyse(lines, stops):
                 full_lists.append(stamp)
     for stop in stops:
         after = [t for t in full_lists if 0 <= t - stop <= SETTLE + DOUBLE_LIST]
-        if any(b - a <= DOUBLE_LIST for a, b in zip(after, after[1:])):
+        if any(b - a <= DOUBLE_LIST for a, b in itertools.pairwise(after)):
             clock = time.strftime("%H:%M:%S", time.localtime(stop))
             failures.append("two channel lists made at once after the stop at %s" % clock)
     for action, seconds in sorted(slowest.items()):
@@ -198,7 +199,7 @@ class DeviceCheck:
                 kodi = JsonRpc("127.0.0.1", LOCAL_PORT)
                 kodi.call("JSONRPC.Ping", timeout=5)
                 return kodi
-            except (OSError, socket.timeout) as e:
+            except (TimeoutError, OSError) as e:
                 if time.time() > deadline:
                     raise SystemExit("Kodi's JSON-RPC does not answer: is remote control from this system allowed?") from e
                 time.sleep(1)

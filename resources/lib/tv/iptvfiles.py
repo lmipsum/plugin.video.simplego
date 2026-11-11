@@ -153,7 +153,7 @@ def export(
     with atomicfile.writer(os.path.join(out, GUIDE)) as add:
         head = ['<?xml version="1.0" encoding="UTF-8"?>', '<tv generator-info-name="plugin.video.simplego">']
         add("\n".join(head + [_channel_xml(c) for c in channels]) + "\n")
-        for done, (block, block_key) in enumerate(zip(blocks, keys), 1):
+        for done, (block, block_key) in enumerate(zip(blocks, keys, strict=True), 1):
             if pause:
                 pause()
             part = guide.xml(block, block_key)

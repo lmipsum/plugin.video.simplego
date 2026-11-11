@@ -33,7 +33,7 @@ python scripts/device_check.py --device <device-ip>:5555 --background
 ## Style
 
 - Follow the existing code: ruff (`ruff check`, `ruff format`) with the settings in `ruff.toml`.
-- Keep the code Python 3.8 compatible: Kodi 20 (Nexus), the oldest supported, runs on it.
+- Write for Python 3.11, which Kodi 20 and 21 run on Android.
 - Explain *why* in comments where the platform forces something unusual.
 - Add or update tests for every behaviour change outside Kodi-only code.
 - Write code, comments, commit messages and issues in English.
