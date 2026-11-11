@@ -23,6 +23,13 @@ python -m pytest
 python scripts/build_zip.py
 ```
 
+On an Android TV device with the add-on installed and logged in (adb connected; in Kodi, debug
+logging and *Allow remote control from applications on this system* on):
+
+```bash
+python scripts/device_check.py --device <device-ip>:5555 --background
+```
+
 ## Style
 
 - Follow the existing code: ruff (`ruff check`, `ruff format`) with the settings in `ruff.toml`.
