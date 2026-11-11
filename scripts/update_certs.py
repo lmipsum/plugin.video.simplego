@@ -4,16 +4,18 @@
 Follows the AIA issuer addresses from the host's certificate to the intermediate and
 to a cross-signed root that Kodi's certifi trusts, checking every signature. Compares
 with resources/certs; --write replaces them and their SHA-256 fingerprints in
-tests/test_certs.py. Run weekly by .github/workflows/certs.yml.
+tests/cert_fingerprints.json. Fails when the chain runs out within NOTICE. Run weekly by
+.github/workflows/certs.yml.
 
     python scripts/update_certs.py           # fetch and check only
     python scripts/update_certs.py --write   # ship the chain fetched
 """
 
 import argparse
+import datetime
 import hashlib
+import json
 import os
-import re
 import socket
 import ssl
 import sys
@@ -31,7 +33,9 @@ from cryptography.x509.oid import ExtensionOID
 HOST = "player.telekomtvgo.hu"
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CERTS = os.path.join(ROOT, "resources", "certs")
-TEST = os.path.join(ROOT, "tests", "test_certs.py")
+FINGERPRINTS = os.path.join(ROOT, "tests", "cert_fingerprints.json")
+# Warned of a year ahead: time to ship a new chain.
+NOTICE = datetime.timedelta(days=365)
 FILES = {"intermediate": "intermediate.crt", "cross_signed": "cross-signed-root.crt"}
 
 
@@ -89,15 +93,10 @@ def fingerprint(cert):
 
 
 def write_fingerprints(fingerprints):
-    """Replace the shipped certificates' fingerprints in tests/test_certs.py (file name -> SHA-256)."""
-    with open(TEST, encoding="utf-8", newline="") as f:
-        text = f.read()
-    for name, value in fingerprints.items():
-        text, count = re.subn(r'("%s": ")[0-9a-f]{64}(")' % re.escape(name), r"\g<1>%s\g<2>" % value, text)
-        if count != 1:
-            sys.exit("%s: no fingerprint of %s to replace" % (TEST, name))
-    with open(TEST, "w", encoding="utf-8", newline="") as f:
-        f.write(text)
+    """Write the shipped certificates' fingerprints (file name -> SHA-256) for the tests."""
+    with open(FINGERPRINTS, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(fingerprints, f, indent=4)
+        f.write("\n")
 
 
 def main():
@@ -128,7 +127,14 @@ def main():
         write_fingerprints({FILES[role]: fingerprint(cert) for role, cert in found.items()})
     if changed and not args.write:
         print("\nThe chain differs from the one shipped: run with --write.")
-    return 1 if changed and not args.write else 0
+    expiring = [FILES[role] for role, cert in found.items() if cert.not_valid_after_utc - _now() < NOTICE]
+    if expiring:
+        print("\nRuns out within a year: %s. Find the host's new chain." % ", ".join(expiring))
+    return 1 if (changed and not args.write) or expiring else 0
+
+
+def _now():
+    return datetime.datetime.now(datetime.timezone.utc)
 
 
 if __name__ == "__main__":

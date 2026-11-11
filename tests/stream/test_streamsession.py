@@ -28,43 +28,58 @@ def test_positions_are_fetched_alongside_the_session_only_for_watching_back():
     assert streamsession._positions_ahead(client, over) is None
 
 
-def test_cancelling_where_to_resume_plays_nothing_and_closes_the_session(kodi, monkeypatch):
+RESUME_INFO = {"id": "1_2026-10-28T20:00:00Z_2026-10-28T21:00:00Z", "program_id": "P1"}
+POSITION = 600
+CONTINUE, FROM_THE_START, BACK = 0, 1, -1
+
+
+class ResumeClient:
+    """A client with a position POSITION seconds into RESUME_INFO's programme; the sessions it closed."""
+
+    def __init__(self):
+        self.closed = []
+
+    def bookmarks(self):
+        return [{"id": RESUME_INFO["id"], "time_seconds": POSITION, "runtime_seconds": 3600}]
+
+    def play_live(self, channel, programme, laps, full_hd=False):
+        return {"session": {"session_id": "S1"}}
+
+    def channel_of(self, channel_id):
+        return None
+
+    def beacon(self, session, complete=False):
+        self.closed.append((session["session_id"], complete))
+
+
+@pytest.mark.parametrize(("choice", "offset"), [(CONTINUE, POSITION), (FROM_THE_START, 0)])
+def test_the_resume_question_says_where_to_start(kodi, choice, offset):
     from resources.lib.stream import streamsession
 
-    info = {"id": "1_2026-10-28T20:00:00Z_2026-10-28T21:00:00Z", "program_id": "P1"}
-    closed = []
+    kodi.ANSWERS["contextmenu"] = choice
+    assert streamsession.resume_offset(ResumeClient(), RESUME_INFO) == offset
 
-    class Client:
-        def bookmarks(self):
-            return [{"id": info["id"], "time_seconds": 600, "runtime_seconds": 3600}]
 
-        def play_live(self, channel, programme, laps, full_hd=False):
-            return {"session": {"session_id": "S1"}}
+def test_cancelling_where_to_resume_plays_nothing(kodi):
+    from resources.lib.stream import streamsession
 
-        def channel_of(self, channel_id):
-            return None
-
-        def beacon(self, session, complete=False):
-            closed.append((session["session_id"], complete))
-
-    client = Client()
-    # Continue, from the start, or cancelled ("Back").
-    kodi.ANSWERS["contextmenu"] = 0
-    assert streamsession.resume_offset(client, info) == 600
-    kodi.ANSWERS["contextmenu"] = 1
-    assert streamsession.resume_offset(client, info) == 0
-    kodi.ANSWERS["contextmenu"] = -1
+    kodi.ANSWERS["contextmenu"] = BACK
     with pytest.raises(provider.CancelledError):
-        streamsession.resume_offset(client, info)
-    # Cancelled as the stream starts: its session, already open, is closed at once.
-    kodi.CONDITIONS["System.Platform.Android"] = True
+        streamsession.resume_offset(ResumeClient(), RESUME_INFO)
+
+
+def test_cancelling_where_to_resume_as_the_stream_starts_closes_its_session_at_once(kodi, monkeypatch):
+    from resources.lib.stream import streamsession
+
+    kodi.ANSWERS["contextmenu"] = BACK
     monkeypatch.setattr(streamsession.parental, "gate", lambda client, channel, programme: None)
     monkeypatch.setattr(streamsession, "_positions_ahead", lambda client, programme: None)
     monkeypatch.setattr(streamsession, "_guide_entry", lambda client, channel, programme: None)
-    monkeypatch.setattr(streamsession, "bookmark_info", lambda client, channel, programme, entry: info)
+    monkeypatch.setattr(streamsession, "bookmark_info", lambda client, channel, programme, entry: RESUME_INFO)
+    client = ResumeClient()
     with pytest.raises(provider.CancelledError):
         streamsession.start_stream(client, {"id": "C1", "media_id": "M"}, {"start": "x", "end": 0})
-    assert closed == [("S1", True)]
+    assert client.closed == [("S1", True)]
 
 
 def test_the_beacon_and_the_position_are_sent_on_a_thread_and_a_busy_round_is_left_out(kodi, monkeypatch):

@@ -3,9 +3,8 @@
 from resources.lib.data import channellist
 
 
-def test_the_lists_default_order_and_a_deactivated_channel_without_its_programme(kodi, monkeypatch, tmp_path):
+def test_the_lists_default_order_and_a_deactivated_channel_without_its_programme(kodi, monkeypatch):
     """Favourites, the other subscribed, the deactivated, the unsubscribed: each group in the account's order."""
-    monkeypatch.setattr(channellist, "DEACTIVATED", str(tmp_path / "deactivated.json"))
     assert channellist.deactivated() == set()
     channellist.set_deactivated(4, True)
     channellist.set_deactivated("2", True)

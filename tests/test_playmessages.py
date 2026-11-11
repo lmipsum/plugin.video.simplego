@@ -10,7 +10,7 @@ def test_every_provider_error_kind_has_a_message():
 
 
 def test_an_expired_airing_offers_its_programme_onto_the_favourites(kodi):
-    offer = {"id": "S1", "kind": "series", "title": "Doktor Balaton", "next": "2099.11.05. 20:00, Mozi+ HD"}
+    offer = {"id": "S1", "kind": "series", "title": "Some Series", "next": "2099.11.05. 20:00, Movies HD"}
     playmessages.offer_instead("plugin://plugin.video.simplego/", "Gone.", offer)  # answered no
     assert not [m for m, kind in kodi.LOG if kind == "builtin"]
     kodi.ANSWERS["yesno"] = True

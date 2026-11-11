@@ -14,7 +14,8 @@ import tempfile
 import types
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PROFILE = tempfile.mkdtemp(prefix="simplego-profile-")
+# Each test gets a profile folder of its own (see conftest); this one is never created.
+PROFILE = os.path.join(tempfile.gettempdir(), "simplego-profile-unset")
 
 LOG = []  # (message, level)
 SETTINGS = {}
@@ -28,6 +29,8 @@ _DEFAULTS = dict(
 )
 PROPERTIES = {}
 CONDITIONS = {}  # Kodi condition -> bool
+# The add-on runs on Android only, with inputstream.adaptive: a test off them says so.
+PLATFORM = {"System.Platform.Android": True, "System.AddonIsEnabled(inputstream.adaptive)": True}
 JSONRPC = {}  # method -> result, or a function(params) giving it
 ANSWERS = {}  # dialog method -> its answer, or a list of answers taken in turn
 
@@ -53,6 +56,7 @@ def reset():
     """Forget what an earlier test set."""
     for store in (LOG, SETTINGS, PROPERTIES, CONDITIONS, JSONRPC, ANSWERS):
         store.clear()
+    CONDITIONS.update(PLATFORM)
 
 
 # ---------------------------------------------------------------- xbmc
@@ -127,13 +131,13 @@ class Addon:
         return STRINGS.get(string_id, "")
 
     def getSetting(self, key):
-        return str(SETTINGS.get(key, ""))
+        return str(SETTINGS.get(key, _DEFAULTS.get(key, "")))
 
     def getSettingBool(self, key):
         return bool(SETTINGS.get(key, _DEFAULTS.get(key) == "true"))
 
     def getSettingInt(self, key):
-        return int(SETTINGS.get(key, 0))
+        return int(SETTINGS.get(key, _DEFAULTS.get(key) or 0))
 
     def setSetting(self, key, value):
         SETTINGS[key] = value

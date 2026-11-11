@@ -70,7 +70,7 @@ def ca_bundle():
 
     The server omits its Sectigo DV E36 intermediate, and Kodi's certifi (2023.5.7)
     predates the Sectigo E46 root, so E46 cross-signed by USERTrust ECC is shipped too.
-    Refreshed by scripts/update_certs.py; tests/test_certs.py warns before expiry.
+    Refreshed by scripts/update_certs.py; its weekly run warns a year before expiry.
     """
     global _bundle
     if _bundle:

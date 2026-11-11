@@ -93,39 +93,56 @@ def test_the_last_stopped_stream_sleeps_until_played_again_or_another_plays(serv
     assert second.proxy.stopped
 
 
-def test_the_playing_channel_mark_goes_when_no_channel_of_ours_plays(service, kodi, monkeypatch):
+LIST_REDRAWN = ("Container.Refresh", "builtin")
+
+
+def test_a_stop_with_the_next_channel_on_its_way_keeps_its_mark(service, kodi):
     from resources.lib.service import quickplay
 
-    # Stopped with the next channel on its way (a switch): its mark, set already, stays.
     coming = Session(11)
     coming.started = False
     kodi.PROPERTIES[quickplay.PLAYING] = "c11"
     service._sessions = [Session(10), coming]
     service.on_stopped()
     assert kodi.PROPERTIES.get(quickplay.PLAYING) == "c11"
-    # Stopped with nothing on its way, played beside the channel list on screen: the list is redrawn.
+
+
+def test_a_stop_beside_the_channel_list_drops_the_mark_and_redraws_the_list(service, kodi):
+    from resources.lib.service import quickplay
+
     kodi.CONDITIONS[playservice.LIST_ON_SCREEN] = True
-    coming.started = True
+    kodi.PROPERTIES[quickplay.PLAYING] = "c10"
+    service._sessions = [Session(10)]
     service.tick()  # as seen while it played: not on the full screen
     service.on_stopped()
     assert quickplay.PLAYING not in kodi.PROPERTIES
-    assert ("Container.Refresh", "builtin") in kodi.LOG
-    # Played on the full screen: Kodi loads the list itself on the way back, so no second listing alongside.
-    kodi.LOG.clear()
+    assert LIST_REDRAWN in kodi.LOG
+
+
+def test_a_stop_on_the_full_screen_leaves_the_list_to_kodi(service, kodi):
+    from resources.lib.service import quickplay
+
+    # Kodi loads the list itself on the way back: a second listing alongside would be one too many.
+    kodi.CONDITIONS[playservice.LIST_ON_SCREEN] = True
     kodi.CONDITIONS["VideoPlayer.IsFullscreen"] = True
     kodi.PROPERTIES[quickplay.PLAYING] = "c10"
     service._sessions = [Session(10)]
     service.tick()
     service.on_stopped()
-    assert quickplay.PLAYING not in kodi.PROPERTIES and ("Container.Refresh", "builtin") not in kodi.LOG
-    # Something else plays (a file, another add-on): nor does one of ours. No list on screen: none redrawn.
-    kodi.CONDITIONS.clear()
-    kodi.LOG.clear()
+    assert quickplay.PLAYING not in kodi.PROPERTIES and LIST_REDRAWN not in kodi.LOG
+
+
+def test_something_else_playing_drops_the_mark_without_a_redraw(service, kodi, monkeypatch):
+    from resources.lib.service import quickplay
+
+    service._sessions = [Session(10)]
+    service.on_stopped()
     kodi.PROPERTIES[quickplay.PLAYING] = "c12"
-    monkeypatch.setattr(service, "_playing_file", lambda: "/some/file.mkv")
+    kodi.LOG.clear()
+    monkeypatch.setattr(service, "_playing_file", lambda: "/some/file.mkv")  # a file, another add-on's stream
     service.on_started()
     assert quickplay.PLAYING not in kodi.PROPERTIES
-    assert ("Container.Refresh", "builtin") not in kodi.LOG
+    assert LIST_REDRAWN not in kodi.LOG
 
 
 def test_stopping_the_service_stops_a_stream_it_plays(service, monkeypatch):

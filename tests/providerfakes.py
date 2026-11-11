@@ -1,4 +1,4 @@
-"""Stand-ins for what the provider's parts are given: the API, the login, the AMP gateway, the STS."""
+"""Stand-ins for what the provider's parts are given: the API, the login, the stream gateway, the token renewal."""
 
 import json
 import time
@@ -59,11 +59,11 @@ class FakeAuth:
 
 
 class FakeApi:
-    """The web API without the web: a startup page that is always fresh, and this HTTP session.
+    """The provider's API without the network: a startup page that is always fresh, and this HTTP session.
 
     :param state: the state the startup page's time goes into
     :param http: the HTTP session (see AmpHttp, StsHttp)
-    :param answers: the bifrost responses send() gives, in turn
+    :param answers: the API responses send() gives, in turn
     :param guest: guest(path, params) gives a guest call's JSON
     """
 
@@ -89,7 +89,7 @@ class FakeApi:
 
 
 class AmpHttp:
-    """The AMP gateway: a roll answered by roll(body) (its response, or an error code), registrations taken.
+    """The stream gateway: a roll answered by roll(body) (its response, or an error code), registrations taken.
 
     The licence server gives no service certificate.
     """
@@ -108,20 +108,20 @@ class AmpHttp:
         body = json.loads(data)
         self.rolls.append(body["roll"])
         answer = self._roll(body)
-        if isinstance(answer, int):  # an AMP error code
+        if isinstance(answer, int):  # a gateway error code
             return Answer(469, {"result": "error", "response": {"code": answer, "message": "refused"}})
         return Answer(data={"result": "success", "response": answer})
 
 
 class StsHttp:
-    """The STS: a refresh token traded for a new access token at once (one redirect)."""
+    """The token renewal: a refresh token traded for a new access token at once (one redirect)."""
 
     def __init__(self):
         self.renewals = 0
 
     def get(self, url, allow_redirects=True, timeout=None):
         self.renewals += 1
-        return Answer(302, headers={"Location": "https://player.telekomtvgo.hu/#access_token=new&expires_in=3600"})
+        return Answer(302, headers={"Location": "https://player.example/#access_token=new&expires_in=3600"})
 
 
 # A channel list known to the playback: subscribed_ids() as given.

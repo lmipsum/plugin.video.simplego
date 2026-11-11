@@ -65,7 +65,7 @@ def picker(kodi, monkeypatch):
     monkeypatch.setattr(kodi.xbmc, "executebuiltin", lambda command, wait=False: state.played.append(command.split("?", 1)[1]))
     resolved = []
     monkeypatch.setattr(xbmcplugin, "setResolvedUrl", lambda h, ok, li: resolved.append(ok), raising=False)
-    channel = {"id": "C1", "media_id": "M", "name": "RTL", "logo": "l.png"}
+    channel = {"id": "C1", "media_id": "M", "name": "Channel Two", "logo": "l.png"}
     monkeypatch.setattr(channellist, "by_station", lambda client: {"1": channel})
 
     class Client:
@@ -98,7 +98,7 @@ def test_the_picker_lists_each_airing_once_oldest_first_and_plays_the_one_picked
     ((labels, preselect, below),) = picker.shown
     # The channel, below it Kodi's short date and the start only (the stub's "%Y-%m-%d" and "%H:%M").
     # Those that play in the skin's own colour; the coming one grey.
-    assert labels == ["RTL", "RTL", "[COLOR grey]RTL[/COLOR]"]
+    assert labels == ["Channel Two", "Channel Two", "[COLOR grey]Channel Two[/COLOR]"]
     assert below[0].startswith("2026-10-27 ") and below[2].startswith("2099-01-01 ")
     assert len(below[0]) == len("2026-10-27 22:30")
     assert preselect == 1
@@ -168,7 +168,7 @@ def test_a_favourite_series_lists_its_seasons_and_a_season_its_airings(kodi, mon
     monkeypatch.setattr(kodi.xbmc, "executebuiltin", lambda command, wait=False: played.append(command), raising=False)
     labels = lambda self, heading, options, **kw: shown.append([(o.label, o.label2) for o in options]) or 0  # noqa: E731
     monkeypatch.setattr(xbmcgui.Dialog, "select", labels)
-    channel = {"id": "C1", "media_id": "M", "name": "Duna", "logo": ""}
+    channel = {"id": "C1", "media_id": "M", "name": "Channel Three", "logo": ""}
     monkeypatch.setattr(channellist, "by_station", lambda client: {"1005": channel})
     airing = {"station_id": "1005", "program_id": "E36", "entitlements": ["ct"]}
     seasons = [{"id": "S_9", "number": 9, "display_name": "Évad 9", "episodes_count": 10}]
@@ -200,7 +200,7 @@ def test_a_favourite_series_lists_its_seasons_and_a_season_its_airings(kodi, mon
     # A click (no handle): the season's airings, each with its episode, the one watched back played.
     plugin.Plugin(["plugin://plugin.video.simplego/", "-1", "?" + url.split("?", 1)[1]]).run()
     # The channel above, the time and the episode (its title where the season has it) below; a coming one grey.
-    assert [label for label, _ in shown[0]] == ["Duna", "[COLOR grey]Duna[/COLOR]"]
+    assert [label for label, _ in shown[0]] == ["Channel Three", "[COLOR grey]Channel Three[/COLOR]"]
     assert [line2.split(" | ")[-1] for _, line2 in shown[0]] == ["S9E36: A szüret[/COLOR]", "S9E37[/COLOR]"]
     assert len(played) == 1 and "2026-10-28T18" in played[0].replace("%3A", ":")
     # A series without seasons: its own airings, picked from at once (none here: a notification).
@@ -213,23 +213,23 @@ def test_a_picker_row_says_now_instead_of_the_time_of_an_airing_on_air(kodi, mon
     from resources.lib.views import programmes
 
     monkeypatch.setattr(localtime, "local_time", lambda iso, date=True: "2026.11.01. 21:00")
-    channel = {"name": "Duna", "logo": "logo.png"}
+    channel = {"name": "Channel Three", "logo": "logo.png"}
     airing = {"start_utc": "2026-11-01T20:00:00Z", "episode_name": "A szüret"}
     on_now = programmes.pick_row(airing, channel, True, numbers=(9, 36))
     # In the skin's own colour where it plays, the episode grey.
-    assert (on_now.label, on_now.label2) == ("Duna", "Now" + G % " | S9E36: A szüret")
+    assert (on_now.label, on_now.label2) == ("Channel Three", "Now" + G % " | S9E36: A szüret")
     later = programmes.pick_row(dict(airing, episode_name=""), channel, False, can_play=False)
-    assert (later.label, later.label2) == ("[COLOR grey]Duna[/COLOR]", "2026.11.01. 21:00")
+    assert (later.label, later.label2) == ("[COLOR grey]Channel Three[/COLOR]", "2026.11.01. 21:00")
 
 
 def test_an_airing_on_a_channels_hd_and_sd_versions_is_listed_once_the_hd_one(kodi):
     from resources.lib.views import programmes
 
-    channels = {"1": {"id": "C1", "name": "Viasat 3"}, "2": {"id": "C2", "name": "Viasat 3 HD"}}
+    channels = {"1": {"id": "C1", "name": "Channel Four"}, "2": {"id": "C2", "name": "Channel Four HD"}}
     airing = {"program_id": "P1", "start_utc": "2026-10-27T22:45:00Z", "end_utc": "2026-10-27T23:50:00Z"}
     back = [dict(airing, station_id="1"), dict(airing, station_id="2"), dict(airing, station_id="1")]
     rows = programmes.pick_rows(back, [], channels, "2026-10-30T20:00:00Z")
-    assert [row[1]["name"] for row in rows] == ["Viasat 3 HD"]
+    assert [row[1]["name"] for row in rows] == ["Channel Four HD"]
 
 
 def test_a_favourites_click_follows_kodis_default_select_action(kodi, picker, monkeypatch):

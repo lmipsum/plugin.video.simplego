@@ -20,12 +20,11 @@ def test_the_main_menu_rows_have_kodis_own_icons(kodi, monkeypatch):
     assert len(icons) == 5 and all(icon and icon.startswith("Default") for icon in icons)
 
 
-def test_the_main_menu_says_the_channel_and_programme_counts_timing_each(kodi, monkeypatch, tmp_path):
+def test_the_main_menu_says_the_channel_and_programme_counts_timing_each(kodi, monkeypatch):
     import xbmcplugin
 
     from resources.lib import plugin
 
-    monkeypatch.setattr(channellist, "DEACTIVATED", str(tmp_path / "deactivated.json"))
     channellist.set_deactivated(2, True)
     channellist.set_deactivated(9, True)  # no longer subscribed: not counted
     labels = []
@@ -63,7 +62,7 @@ def test_the_main_menu_says_the_channel_and_programme_counts_timing_each(kodi, m
     assert [m for m, _ in kodi.LOG if "main menu counts" in m][-1].endswith("(again)")
 
 
-def test_the_main_menu_takes_its_counts_from_the_play_service(kodi, monkeypatch, tmp_path):
+def test_the_main_menu_takes_its_counts_from_the_play_service(kodi, monkeypatch):
     import xbmcplugin
 
     from resources.lib import plugin
@@ -71,8 +70,7 @@ def test_the_main_menu_takes_its_counts_from_the_play_service(kodi, monkeypatch,
     from resources.lib.service import pluginrequests
     from resources.lib.service import quickplay
 
-    continue_at(monkeypatch, tmp_path)
-    monkeypatch.setattr(channellist, "DEACTIVATED", str(tmp_path / "deactivated.json"))
+    continue_at(monkeypatch)
 
     class Client:
         def sync(self):

@@ -18,7 +18,7 @@ def test_a_change_made_elsewhere_exports_once_the_settings_dialog_is_closed(kodi
     schedule.look(monitor)
     schedule.export_if_wanted()
     assert started == []  # not while the settings dialog is open
-    kodi.CONDITIONS.clear()
+    kodi.CONDITIONS["Window.IsActive(addonsettings)"] = False
     monitor.changed_at -= background.SETTINGS_DEBOUNCE + 1
     schedule.look(monitor)
     schedule.export_if_wanted()

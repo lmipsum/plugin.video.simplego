@@ -115,6 +115,7 @@ def test_the_login_window_waits_for_the_phone_then_cleans_up(views, kodi, monkey
     monkeypatch.setattr(loginserver, "LoginReceiver", Receiver)
     monkeypatch.setattr(qrwindow, "make_qr_png", lambda text, path: open(path, "wb").close())
     monkeypatch.setattr(xbmcgui, "ControlLabel", label)
+    monkeypatch.setattr(phonelogin.kodiutil, "phone_or_tablet", lambda: False)  # a TV: the address shown, not a button
     assert phonelogin.wait_for_token(views.client) == "from the phone"
     assert stopped == [True]
     # Colours by Kodi's colour names, not hex: a skin can set them.

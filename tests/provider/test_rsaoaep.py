@@ -56,6 +56,6 @@ def test_oaep_round_trip():
     spki, n, d = _key(random.Random(1))
     assert rsaoaep.public_key(spki) == (n, 65537)
     first, second = rsaoaep.encrypt(spki, b"1234"), rsaoaep.encrypt(spki, b"1234")
-    assert len(base64.b64decode(first)) == 128  # as the web player's: a 1024-bit key
+    assert len(base64.b64decode(first)) == 128  # a 1024-bit key's
     assert first != second  # a random seed each time
     assert _decrypt(first, n, d) == b"1234" and _decrypt(second, n, d) == b"1234"
