@@ -37,14 +37,14 @@ class ChannelViews:
 
         One at a time: back from the full screen after a stop, Kodi asks for the list twice at once
         (its own reload, then another 0.1 s later, seen 2026-11-02), and showed both answers in one list
-        (each channel twice). The later of two at once ends at once as failed: Kodi keeps the one made.
+        (each channel twice). Of two at once only one makes it; the other ends at once as failed, and
+        Kodi keeps the one made.
         """
         lock = homelock.HomeLock(kodiutil.home(), LISTING, LISTING_STALE)
-        if lock.held():
+        if not lock.try_take():
             _log("channel list asked for again while one is being made: this one ends", xbmc.LOGDEBUG)
             xbmcplugin.endOfDirectory(self._call.handle, succeeded=False)
             return
-        lock.take()
         try:
             self._list_channels()
         finally:

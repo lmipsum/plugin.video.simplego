@@ -10,7 +10,8 @@ import xbmcgui
 
 from resources.lib.util import kodienv
 
-# Home window property: when the plugin call on its way started.
+# Home window property: when the plugin call on its way started. One mark for all calls: of two at
+# once, the first to end clears it, and the export may go on early, which costs only speed.
 PROPERTY = "%s.plugin_busy" % kodienv.ADDON_ID
 # A mark older than this (seconds) is a failed call's: the export goes on.
 STALE = 30

@@ -4,6 +4,10 @@ import os
 import threading
 import time
 
+# Seconds a new holder waits to see its mark stay: two that found the lock free at once both set
+# theirs, and only the last one's stays.
+SETTLE = 0.2
+
 
 class HomeLock:
     """One holder at a time of a Home window property; a mark older than `stale` is a crashed holder's.
@@ -29,6 +33,14 @@ class HomeLock:
         # The process and thread too: two holders taking it in the same instant still tell their marks apart.
         self._mark = "%f %d-%d" % (time.time(), os.getpid(), threading.get_ident())
         self._home.setProperty(self._name, self._mark)
+
+    def try_take(self):
+        """Take the lock if it is free; return whether this holder has it (see SETTLE)."""
+        if self.held():
+            return False
+        self.take()
+        time.sleep(SETTLE)
+        return self.is_mine()
 
     def is_mine(self):
         """Return whether the mark set is this holder's (two taking it at once: the last one's stays)."""
