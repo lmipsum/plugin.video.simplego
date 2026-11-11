@@ -6,6 +6,7 @@ from kodiside import continue_at
 from resources.lib import clientfactory
 from resources.lib import kodiutil
 from resources.lib.data import channellist
+from resources.lib.util import localtime
 from resources.lib.views import listing
 
 
@@ -16,7 +17,7 @@ def test_continue_watching_rows_show_the_programme_its_episode_poster_and_length
     from resources.lib.data import infopages
 
     continue_at(monkeypatch, tmp_path)
-    monkeypatch.setattr(kodiutil, "local_date", lambda stamp: "2026.11.04.")
+    monkeypatch.setattr(localtime, "local_date", lambda stamp: "2026.11.04.")
 
     added = []
     monkeypatch.setattr(xbmcplugin, "addDirectoryItem", lambda handle, url, li, isFolder=False: added.append(li), raising=False)

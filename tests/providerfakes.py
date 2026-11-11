@@ -31,7 +31,7 @@ class FakeAuth:
         self.calls = []  # (path, method, params, body)
         self.tokens = []  # how far ahead each valid token was asked for
         self._answer = answer or (lambda path, params: {})
-        self._readded = []
+        self._readd_listeners = []
 
     def call(self, path, flow, step=None, params=None, method="GET", body=None, readd=True):
         self.calls.append((path, method, params, body))
@@ -51,10 +51,10 @@ class FakeAuth:
         return ""
 
     def on_device_readded(self, forget):
-        self._readded.append(forget)
+        self._readd_listeners.append(forget)
 
     def readd_device(self):
-        for forget in self._readded:
+        for forget in self._readd_listeners:
             forget()
 
 

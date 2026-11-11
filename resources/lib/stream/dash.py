@@ -15,6 +15,8 @@ TRICK_MODE = "http://dashif.org/guidelines/trickmode"
 # The provider's MPDs: self-closing Representation tags inside each AdaptationSet.
 ADAPTATION_SET = re.compile(r"<AdaptationSet\b.*?</AdaptationSet>", re.S)
 REPRESENTATION = re.compile(r"<Representation\b[^>]*/>")
+SEGMENT_TEMPLATE = re.compile(r"<SegmentTemplate\b.*?</SegmentTemplate>", re.S)
+STATIC_MPD = re.compile(r'<MPD\b[^>]*\btype="static"')
 # Compiled once and one pass per timeline entry: a live timeline grows by one entry per segment, the
 # sound's not folded into r, and every refresh reads them all.
 TIMESCALE = re.compile(r'\btimescale="(\d+)"')
@@ -30,6 +32,26 @@ def adaptation_sets(xml):
 def is_trick_mode(aset):
     """Return whether an AdaptationSet is a trick-mode one (see TRICK_MODE)."""
     return TRICK_MODE in aset
+
+
+def is_static(mpd):
+    """Return whether a manifest is a static one (a programme watched back), not a live one."""
+    return bool(STATIC_MPD.search(mpd))
+
+
+def is_video(aset):
+    """Return whether an AdaptationSet holds video, by its contentType or its mimeType."""
+    return 'contentType="video"' in aset or 'mimeType="video/' in aset
+
+
+def is_audio(aset):
+    """Return whether an AdaptationSet holds audio, by its contentType or its mimeType."""
+    return 'contentType="audio"' in aset or 'mimeType="audio/' in aset
+
+
+def is_text(aset):
+    """Return whether an AdaptationSet holds subtitles, by its contentType, its mimeType or its codec."""
+    return 'contentType="text"' in aset or 'mimeType="text/' in aset or 'codecs="stpp' in aset
 
 
 def representations(aset):
@@ -138,7 +160,7 @@ def align_live_edges(mpd, window=None):
         though the manifest's window is always 15 minutes
     """
     timelines = {}
-    for template in re.findall(r"<SegmentTemplate\b.*?</SegmentTemplate>", mpd, re.S):
+    for template in SEGMENT_TEMPLATE.findall(mpd):
         scale, segments = parse_timeline(template)
         if segments:
             timelines[template] = (scale, segments)
@@ -258,7 +280,7 @@ def start_time(aset, from_start):
     The first one when played from the beginning, else the newest but one (the
     newest may still be in the making).
     """
-    template = re.search(r"<SegmentTemplate\b.*?</SegmentTemplate>", aset, re.S)
+    template = SEGMENT_TEMPLATE.search(aset)
     if not template:
         return None
     segments = parse_timeline(template.group(0), default_scale=1)[1]

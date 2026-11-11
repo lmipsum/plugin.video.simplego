@@ -4,10 +4,20 @@
 class ApiError(Exception):
     """The provider refused a call or could not be reached; base of the client's errors.
 
-    kind: the user-facing message key (see service.quickplay.ERRORS).
+    kind: the user-facing message key (see playmessages.ERRORS).
+
+    :param code: the provider's error code, if it gave one
+    :param status: the HTTP status, if the call got that far
     """
 
     kind = None
+    # Something else to watch, set by the view that caught it (see plugin.tell).
+    offer = None
+
+    def __init__(self, message="", code=None, status=None):
+        Exception.__init__(self, message)
+        self.code = code
+        self.status = status
 
 
 class AuthError(ApiError):
@@ -17,7 +27,7 @@ class AuthError(ApiError):
 
 
 class GeoBlockedError(ApiError):
-    """The provider refused playback from this address (7027, "out of country blocked"): some VPN and data-centre ones."""
+    """The provider refused playback from this address."""
 
     kind = "geo"
 
@@ -37,8 +47,7 @@ class LicenceRefusedError(ApiError):
     kind = "licence"
 
     def __init__(self, code=None):
-        ApiError.__init__(self, "licence refused (%s)" % (code or "not asked"))
-        self.code = code
+        ApiError.__init__(self, "licence refused (%s)" % (code or "not asked"), code=code)
 
 
 class RestartNotAllowedError(ApiError):

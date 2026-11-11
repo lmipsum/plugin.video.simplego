@@ -3,17 +3,25 @@ import time
 from resources.lib.stream import keyfollower
 
 
+class Rewriter:
+    """A stream's manifest keys: a part, its key changes (399 s into the stream), none noticed live."""
+
+    def __init__(self, part, changes):
+        self.part = part
+        self.change_times = changes
+        self.found_changes = [[99]]
+        self.live_changes = ()
+
+    def part_of(self, seconds):
+        return sum(1 for t in self.change_times if seconds >= t)
+
+
 class Proxy:
     """A stream's proxy with one key change 399 s into the stream."""
 
     def __init__(self, part=0, changes=(399.0,)):
-        self.part = part
-        self.change_times = changes
-        self.found_changes = [[99]]
+        self.rewriter = Rewriter(part, changes)
         self.prefetched = self.stopped = False
-
-    def part_of(self, seconds):
-        return sum(1 for t in self.change_times if seconds >= t)
 
     def prefetch(self):
         self.prefetched = True
@@ -78,9 +86,14 @@ def follower(proxy=None, known=None):
         made.append(Proxy(part))
         return made[-1]
 
-    follower = keyfollower.KeyFollower(proxy or Proxy(), make_proxy, known=known, key=("channel", "start"))
     restarts = []
-    follower.restart = lambda part, seconds: restarts.append((part, round(seconds, 1), time.time()))
+    follower = keyfollower.KeyFollower(
+        proxy or Proxy(),
+        make_proxy,
+        known=known,
+        key=("channel", "start"),
+        restart=lambda part, seconds: restarts.append((part, round(seconds, 1), time.time())),
+    )
     return follower, made, restarts
 
 
@@ -122,7 +135,7 @@ def test_the_next_part_is_made_ready_twenty_seconds_ahead(kodi):
     keys.follow(370.0, Player(370.0))
     assert made == []
     keys.follow(385.0, Player(385.0))
-    assert len(made) == 1 and made[0].part == 1 and made[0].prefetched
+    assert len(made) == 1 and made[0].rewriter.part == 1 and made[0].prefetched
     assert keys.part_proxy(1) is made[0]  # the restart takes the one made ready
 
 
@@ -131,9 +144,9 @@ def test_switching_parts_stops_the_old_proxy_once_the_new_one_plays(kodi):
     keys, _, _ = follower(old)
     new = Proxy(part=1)
     keys.switch(new)
-    assert keys.proxy is new and keys.switching and not old.stopped
+    assert keys.proxy is new and keys.switch_began and not old.stopped
     keys.switched()
-    assert old.stopped and not keys.switching
+    assert old.stopped and not keys.switch_began
 
 
 def test_the_key_changes_found_are_kept_for_the_next_stream_of_the_programme(kodi):
@@ -156,7 +169,7 @@ class LiveProxy(Proxy):
 
     def __init__(self):
         super().__init__(changes=())
-        self.live_changes = ((1000.0, 6.0, "video", "old", "new"),)
+        self.rewriter.live_changes = ((1000.0, 6.0, "video", "old", "new"),)
 
 
 class LivePlayer(Player):

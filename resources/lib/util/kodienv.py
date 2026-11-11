@@ -3,6 +3,8 @@
 import xbmc
 
 ADDON_ID = "plugin.video.simplego"
+# Kodi's Home window: its properties are shared by all of the add-on's processes.
+HOME_WINDOW = 10000
 
 
 def android():

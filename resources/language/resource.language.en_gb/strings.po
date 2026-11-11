@@ -42,10 +42,6 @@ msgctxt "#30023"
 msgid "Log out? This device is also removed from the account's devices, freeing its slot."
 msgstr ""
 
-msgctxt "#30030"
-msgid "Show in the TV menu"
-msgstr ""
-
 msgctxt "#30031"
 msgid "IPTV Simple Client could not be installed."
 msgstr ""

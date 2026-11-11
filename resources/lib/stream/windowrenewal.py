@@ -1,8 +1,7 @@
-"""Opening a live stream again before its window ends, where the guide has a programme start.
+"""Opening a live stream again before its window ends (see provider.playback).
 
-A live window has an end (see provider.playback): past it the manifest stops growing and the player
-waits for segments that never come. The stream is opened again before then, preferably just after a
-programme starts, where adverts and trailers mostly run: the last such moment before the window ends.
+Preferably just after a programme in the guide starts, where adverts and trailers mostly run: the
+last such moment before the window ends.
 """
 
 # Opened again at the latest this long before the window ends: time for the new stream to start.
@@ -13,7 +12,7 @@ START_SLACK = 60
 # jump to the edge, so that waits for the deadline.
 WATCHING_BACK = 60
 # A try that did not take (this stream still plays) is followed by another this much later, past the
-# window's end too: the stream that ended is no use, the next try brings the picture back.
+# window's end too.
 RETRY_EVERY = 60
 
 

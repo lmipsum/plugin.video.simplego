@@ -11,6 +11,8 @@ SCOPES = {
     "all": ("/epg/channel", "START_UP", "EPG_CHANNEL"),
     "favourite": ("/epg/channel/favourite", "EPG", "FAVOURITE_CHANNELS"),
 }
+# Above every channel number, so a channel without one sorts last.
+NO_NUMBER = 9999
 
 
 class Channels:
@@ -40,7 +42,7 @@ class Channels:
             scope = "guest"
         acc = self._auth.valid_account() if self._auth.authed else {}
         entry = self._kept.read().get(scope)
-        ttl = core.CHANNELS_TTL if scope == "favourite" else core.LINEUP_TTL
+        ttl = core.FAVOURITES_TTL if scope == "favourite" else core.LINEUP_TTL
         if not entry or entry["at"] + ttl < time.time() or entry["map"] != acc.get("channelMap_id"):
             entry = {"at": time.time(), "map": acc.get("channelMap_id"), "list": self._fetch_channels(scope)}
             self._kept.change(lambda kept: kept.update({scope: entry}))
@@ -91,7 +93,8 @@ class Channels:
 
     def _fetch_channels(self, scope):
         if scope == "guest":
-            data = self._api.call("/epg/channel", "START_UP", "EPG_CHANNEL", params={"includeVirtualChannels": "false"})
+            path, flow, step = SCOPES["all"]
+            data = self._api.call(path, flow, step, params={"includeVirtualChannels": "false"})
         else:
             path, flow, step = SCOPES[scope]
             params = {"channelMap_id": self._auth.channel_map(), "includeVirtualChannels": "false"}
@@ -125,5 +128,10 @@ class Channels:
                     ],
                 }
             )
-        out.sort(key=lambda c: c["number"] or 9999)
+        out.sort(key=sort_key)
         return out
+
+
+def sort_key(channel):
+    """Return a channel's place in the number order: one without a number goes last."""
+    return channel["number"] or NO_NUMBER

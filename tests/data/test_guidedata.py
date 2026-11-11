@@ -49,3 +49,9 @@ def test_resumed():
     assert plain["resume"] is True and "age" not in plain  # looked up in the guide
     asked = "2026-10-26T22:00:00Z~2026-10-26T23:15:00Z~ct~?~start"
     assert guidedata.from_param(guidedata.resumed(asked))["resume"] is True
+
+
+def test_watched_back_and_restarted_by_the_guide_flags():
+    assert guidedata.watchable_back({"content_flags": ["ct", "rn"]}) and not guidedata.restartable({"content_flags": ["rn"]})
+    assert not guidedata.watchable_back({"content_flags": None}) and guidedata.restartable({"content_flags": None})
+    assert guidedata.restartable({"content_flags": ["ct"]})

@@ -1,6 +1,7 @@
 """A stream's session: positions, the resume question, beacons."""
 
 import time
+import types
 
 import pytest
 
@@ -59,8 +60,8 @@ def test_cancelling_where_to_resume_plays_nothing_and_closes_the_session(kodi, m
     kodi.CONDITIONS["System.Platform.Android"] = True
     monkeypatch.setattr(streamsession.parental, "gate", lambda client, channel, programme: None)
     monkeypatch.setattr(streamsession, "_positions_ahead", lambda client, programme: None)
-    monkeypatch.setattr(streamsession, "programme_details", lambda client, channel, programme: None)
-    monkeypatch.setattr(streamsession, "bookmark_info", lambda client, channel, programme: info)
+    monkeypatch.setattr(streamsession, "_guide_entry", lambda client, channel, programme: None)
+    monkeypatch.setattr(streamsession, "bookmark_info", lambda client, channel, programme, entry: info)
     with pytest.raises(provider.CancelledError):
         streamsession.start_stream(client, {"id": "C1", "media_id": "M"}, {"start": "x", "end": 0})
     assert closed == [("S1", True)]
@@ -84,7 +85,7 @@ def test_the_beacon_and_the_position_are_sent_on_a_thread_and_a_busy_round_is_le
             sent.append(("position", seconds))
 
     class Keys:
-        proxy = type("Proxy", (), {"change_times": []})()
+        proxy = types.SimpleNamespace(rewriter=types.SimpleNamespace(change_times=[]))
 
         def __init__(self, *args, **kwargs):
             pass
@@ -122,7 +123,7 @@ def test_a_live_stream_with_a_window_end_is_opened_again_when_due_and_tried_agai
     from resources.lib.stream import windowrenewal
 
     class Keys:
-        proxy = type("Proxy", (), {"change_times": []})()
+        proxy = types.SimpleNamespace(rewriter=types.SimpleNamespace(change_times=[]))
 
         def __init__(self, *args, **kwargs):
             pass
@@ -144,9 +145,8 @@ def test_a_live_stream_with_a_window_end_is_opened_again_when_due_and_tried_agai
     monkeypatch.setattr(streamsession, "programme_start", lambda client, channel, when: None)
     end = time.time() + 600
     stream = {"session": {"session_id": "S1", "interval": 24 * 3600}, "channel": {"id": "C1"}, "window_end": end}
-    session = streamsession.Session(object(), stream, proxy=None)
     renewed = []
-    session.renew = renewed.append
+    session = streamsession.Session(object(), stream, proxy=None, renew=renewed.append)
     session.tick(LivePlayer(), now=session.renewal.deadline - 1)
     assert renewed == []
     session.tick(LivePlayer(), now=session.renewal.deadline)
@@ -161,3 +161,80 @@ def test_a_stream_without_a_window_end_is_not_opened_again(kodi):
 
     session = streamsession.Session(object(), {"session": {"session_id": "S1", "interval": 600}, "channel": {"id": "C1"}}, None)
     assert session.renewal is None
+
+
+def test_where_to_resume_is_asked_through_the_question_given(kodi):
+    from resources.lib.stream import streamsession
+
+    class Client:
+        def bookmarks(self):
+            return [{"id": "B", "time_seconds": 600, "runtime_seconds": 3600}]
+
+    asked = []
+    assert streamsession.resume_offset(Client(), {"id": "B"}, ask_resume=lambda s: asked.append(s) or True) == 600
+    assert streamsession.resume_offset(Client(), {"id": "B"}, ask_resume=lambda s: False) == 0
+    assert streamsession.resume_offset(Client(), {"id": "B"}, resume=True, ask_resume=asked.append) == 0  # Kodi asked
+    assert asked == [600]
+
+
+def test_the_guide_is_asked_once_for_a_programme_watched_back(kodi, monkeypatch):
+    from resources.lib.stream import streamsession
+
+    class Client:
+        authed = True
+
+        def play_live(self, channel, programme, laps, full_hd=False):
+            return {"session": {"session_id": "S1"}}
+
+        def channel_of(self, channel_id):
+            return None
+
+        def station_of(self, channel_id):
+            return "1001"
+
+    asked = []
+    entry = {"program_id": "P1", "title": "News"}
+    monkeypatch.setattr(streamsession.onair, "on_air", lambda client, station, when: asked.append(when) or (entry, None))
+    monkeypatch.setattr(streamsession.guidedata, "details", lambda found: {"plot": "", "found": found})
+    monkeypatch.setattr(streamsession.infopages, "keep_plot", lambda *args: None)
+    programme = {"start": "2026-10-28T20:00:00Z", "end": time.time() - 600}
+    stream = streamsession._open(Client(), {"id": "C1", "media_id": "M"}, programme, lambda step: None)
+    assert asked == [programme["start"]]
+    assert stream["details"]["found"] is entry and stream["bookmark"]["program_id"] == "P1"
+
+
+class _SleepyProxy:
+    def __init__(self):
+        self.slept = self.stopped = None
+
+    def sleep(self, reopen):
+        self.slept = reopen
+
+    def stop(self):
+        self.stopped = True
+
+
+def test_a_sleeping_session_closes_but_keeps_its_proxy_to_reopen_it(kodi):
+    from resources.lib.stream import streamsession
+
+    class Client:
+        def beacon(self, session, complete=False):
+            pass
+
+    def reopen():
+        return "http://127.0.0.1:2"
+
+    proxy = _SleepyProxy()
+    stream = {"session": {"session_id": "S1", "interval": 60}, "channel": {"id": "C1"}}
+    streamsession.Session(Client(), stream, proxy, reopen=reopen).sleep()
+    assert proxy.slept is reopen and not proxy.stopped
+
+
+def test_only_the_last_programmes_key_changes_are_kept(kodi, monkeypatch):
+    from resources.lib.stream import streamsession
+
+    known = {("C1", n): [[n]] for n in range(streamsession.KEPT_KEY_CHANGES + 3)}
+    monkeypatch.setattr(streamsession, "_key_changes", known)
+    stream = {"session": {"session_id": "S1", "interval": 60}, "channel": {"id": "C1"}}
+    streamsession.Session(object(), stream, None)
+    assert list(known) == [("C1", n) for n in range(3, streamsession.KEPT_KEY_CHANGES + 3)]

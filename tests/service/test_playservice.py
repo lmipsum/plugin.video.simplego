@@ -6,15 +6,18 @@ import types
 import pytest
 
 from resources.lib.service import playservice
+from resources.lib.service import wakeresume
+from resources.lib.util import kodienv
 
 
 class Proxy:
     def __init__(self, port):
-        self.manifest = "http://127.0.0.1:%d/manifest" % port
-        self.slept = self.stopped = False
+        self.base = "http://127.0.0.1:%d" % port
+        self.manifest = self.base + "/manifest"
+        self.stopped = False
 
-    def sleep(self, reopen):
-        self.slept = reopen
+    def serves(self, url):
+        return url.startswith(self.base + "/")
 
     def stop(self):
         self.stopped = True
@@ -24,15 +27,20 @@ class Session:
     def __init__(self, port):
         self.id = "s%d" % port
         self.started = True
-        self.keys = types.SimpleNamespace(switching=None)
+        self.switch_began = 0
         self.ticks = []
         self.proxy = Proxy(port)
-        self.reopen = lambda: None
         self.stream = {"channel": {"id": "c%d" % port, "media_id": "LIVE$%d" % port}, "programme": None}
-        self.closed = None  # how: "all" or "but the proxy"
+        self.closed = None  # how: "all" or "asleep"
 
-    def close(self, keep_proxy=False):
-        self.closed = "but the proxy" if keep_proxy else "all"
+    def close(self):
+        self.closed = "all"
+
+    def sleep(self):
+        self.closed = "asleep"
+
+    def hold(self):
+        pass
 
     def start(self):
         self.started = True
@@ -72,7 +80,7 @@ def test_the_last_stopped_stream_sleeps_until_played_again_or_another_plays(serv
     service.on_stopped()
     # The one stopped last keeps its proxy, asleep: played again by its address, it reopens the stream.
     assert first.closed == "all"
-    assert _wait(lambda: second.closed == "but the proxy" and second.proxy.slept is second.reopen)
+    assert _wait(lambda: second.closed == "asleep")
 
     # Played again through it: the sleeping proxy stays; another item: it goes.
     service._sessions = [third]
@@ -155,7 +163,8 @@ def test_while_another_stream_is_on_its_way_the_playing_one_does_not_follow_the_
 
 def test_a_live_channel_plays_again_when_kodi_wakes_up(service, monkeypatch):
     played, asked = [], []
-    monkeypatch.setattr(playservice.threading, "Timer", lambda delay, f, args: types.SimpleNamespace(start=lambda: f(*args)))
+    monkeypatch.setattr(wakeresume.threading, "Timer", lambda delay, f, args: types.SimpleNamespace(start=lambda: f(*args)))
+
     monkeypatch.setattr(
         service,
         "play",
@@ -193,10 +202,10 @@ class ListClient:
     """What a channel list asks of the streams' client (see channellist.view)."""
 
     authed = True
-    reloaded = 0
+    synced = 0
 
-    def reload(self):  # takes up what the plugin changed
-        self.reloaded += 1
+    def sync(self):  # takes up what the plugin changed
+        self.synced += 1
 
     def channel_list(self, scope="all", kind="all"):
         favourite = [{"id": "11", "station_id": "1001", "number": 1}]
@@ -220,7 +229,7 @@ def test_a_channel_list_comes_from_the_service_over_localhost(service, monkeypat
     service.clients.append(lambda: client)
     monkeypatch.setattr(parental, "hides_adult", lambda client: False)
     view = quickplay.ask("/list", 5, scope="all")
-    assert [c["id"] for c in view["channels"]] == ["11", "22"] and client.reloaded == 1  # the plugin's changes taken up
+    assert [c["id"] for c in view["channels"]] == ["11", "22"] and client.synced == 1  # the plugin's changes taken up
     assert view["now"] == {"1001": {"description": "Híradó"}}  # only the listed channels'
     assert view["next"] == {"1001": {"description": "Sport"}}
     assert view["subscribed"] == ["11"] and view["favourites"] == ["11"] and view["ordered"] is False
@@ -234,7 +243,7 @@ def test_without_the_service_a_list_is_not_asked_for(kodi):
 
     from resources.lib.service import quickplay
 
-    xbmcgui.Window(10000).clearProperty(playservice.PROPERTY)
+    xbmcgui.Window(kodienv.HOME_WINDOW).clearProperty(playservice.PROPERTY)
     assert quickplay.ask("/list", 5, scope="all") is None
 
 

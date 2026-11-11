@@ -50,3 +50,13 @@ def test_the_login_running_out_is_warned_of(kodi):
     assert not [m for m, level in kodi.LOG if level == "notification"]
     loginstate.warn_if_login_runs_out(AccountClient(days=3))
     assert [m for m, level in kodi.LOG if level == "notification"][0].startswith("Your login runs out on ")
+
+
+def test_a_login_marks_the_login_changed_and_shows_the_given_clients_state(kodi):
+    from resources.lib import kodiutil
+
+    client = AccountClient(days=300)
+    client.authed = False  # a guest still: no account rows asked
+    loginstate.login_changed(client)
+    assert kodiutil.home().getProperty(kodiutil.LOGIN_CHANGED) == "1" and kodi.SETTINGS["logged_in"] is True
+    kodiutil.home().clearProperty(kodiutil.LOGIN_CHANGED)

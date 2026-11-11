@@ -9,6 +9,7 @@ from kodiside import G
 from resources.lib import clientfactory
 from resources.lib import kodiutil
 from resources.lib.data import channellist
+from resources.lib.util import localtime
 from resources.lib.views import listing
 
 
@@ -211,7 +212,7 @@ def test_a_favourite_series_lists_its_seasons_and_a_season_its_airings(kodi, mon
 def test_a_picker_row_says_now_instead_of_the_time_of_an_airing_on_air(kodi, monkeypatch):
     from resources.lib.views import programmes
 
-    monkeypatch.setattr(kodiutil, "local_time", lambda iso, date=True: "2026.11.01. 21:00")
+    monkeypatch.setattr(localtime, "local_time", lambda iso, date=True: "2026.11.01. 21:00")
     channel = {"name": "Duna", "logo": "logo.png"}
     airing = {"start_utc": "2026-11-01T20:00:00Z", "episode_name": "A szüret"}
     on_now = programmes.pick_row(airing, channel, True, numbers=(9, 36))

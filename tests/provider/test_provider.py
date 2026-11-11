@@ -45,19 +45,6 @@ def test_extract_refresh_token_rejects_text_without_one(text):
     assert provider.core.extract_refresh_token(text) == ""
 
 
-def test_unwrap_service_certificate():
-    cert = bytes(range(200))
-    # SignedMessage{type: SERVICE_CERTIFICATE (5), msg: <cert>}; 200 needs a two-byte varint length.
-    msg = b"\x08\x05\x12\xc8\x01" + cert
-    assert provider.playback.unwrap_service_certificate(msg) == cert
-
-
-def test_unwrap_service_certificate_rejects_other_messages():
-    assert provider.playback.unwrap_service_certificate(b"\x08\x02\x12\x01x") is None
-    # Truncated payload.
-    assert provider.playback.unwrap_service_certificate(b"\x08\x05\x12\x10abc") is None
-
-
 def test_account_details_header():
     acc = {
         "account_type": "TYPE",
@@ -97,7 +84,7 @@ def test_epg_stops_at_the_first_day_without_programmes(tmp_path):
         start = "%sT%02d:00:00Z" % (date, offset)
         return {"1001": [{"slot_type": "schedule", "start_time": start, "end_time": start}]}
 
-    programmes = _epg(_guide(block), past_days=2, days_ahead=10)
+    programmes, _ = _epg(_guide(block), past_days=2, days_ahead=10)
     assert len(programmes["1001"]) == 6 * 8  # two days back, today, three ahead
     assert len(set(asked)) == 7  # the first empty day ends it, not day 10
 
@@ -124,12 +111,13 @@ def test_guest_mode_uses_the_public_channel_list_and_guide(tmp_path):
 
 
 def _epg(guide, past_days=1, days_ahead=7, stations=None, cache_dir=None, progress=None):
-    """{station_id: [programme, ...]} of the guide's blocks, a programme in two blocks once."""
+    """({station_id: [programme, ...]} of the guide's blocks, a programme in two blocks once; the block counts)."""
     out = {}
-    for _, _, block in guide.epg_blocks(past_days, days_ahead, stations, cache_dir, progress):
+    blocks, counts = guide.epg_blocks(past_days, days_ahead, stations, cache_dir, progress)
+    for _, _, block in blocks:
         for station, progs in block.channels().items():
             out.setdefault(station, {}).update((p["start_time"], p) for p in progs)
-    return {station: [progs[k] for k in sorted(progs)] for station, progs in out.items()}
+    return {station: [progs[k] for k in sorted(progs)] for station, progs in out.items()}, counts
 
 
 def _guide_client():
@@ -148,14 +136,14 @@ def _guide_client():
 def test_epg_keeps_blocks_between_calls(tmp_path, monkeypatch):
     guide, asked = _guide_client()
     cache = str(tmp_path / "blocks")
-    programmes = _epg(guide, past_days=1, days_ahead=1, stations={"1001"}, cache_dir=cache)
+    programmes, counts = _epg(guide, past_days=1, days_ahead=1, stations={"1001"}, cache_dir=cache)
     assert len(asked) == 24 and set(programmes) == {"1001"}
     assert "cta" not in programmes["1001"][0]  # only the fields the export uses
-    assert guide.epg_stats == {"fetched": 24, "cached": 0}
+    assert counts == {"fetched": 24, "cached": 0}
 
     # Right after: all kept. For a channel list kept blocks do not cover, fetched again.
-    _epg(guide, past_days=1, days_ahead=1, stations={"1001"}, cache_dir=cache)
-    assert len(asked) == 24 and guide.epg_stats["cached"] == 24
+    _, counts = _epg(guide, past_days=1, days_ahead=1, stations={"1001"}, cache_dir=cache)
+    assert len(asked) == 24 and counts["cached"] == 24
     _epg(guide, past_days=1, days_ahead=1, stations={"1001", "1002"}, cache_dir=cache)
     assert len(asked) == 48
 
@@ -181,10 +169,10 @@ def test_blocks_days_ahead_are_fetched_again_less_often(tmp_path, monkeypatch):
     for name in os.listdir(cache):
         os.utime(os.path.join(cache, name), (0, os.path.getmtime(os.path.join(cache, name)) - 3600))
     asked.clear()
-    _epg(guide, past_days=0, days_ahead=4, stations={"1001"}, cache_dir=cache)
+    _, counts = _epg(guide, past_days=0, days_ahead=4, stations={"1001"}, cache_dir=cache)
     starts = [calendar_start(date, hour) for date, hour in asked]
     assert asked and max(starts) - time.time() <= provider.guideblocks.NEAR
-    assert guide.epg_stats["cached"] >= 16  # days 3 and 4 at least
+    assert counts["cached"] >= 16  # days 3 and 4 at least
 
 
 def calendar_start(date, hour):
@@ -303,13 +291,13 @@ def test_play_live_turns_2401_into_archive_unavailable(tmp_path):
 
 
 def test_an_expired_catch_up_is_said_so_in_its_own_words(tmp_path):
-    from resources.lib.service import quickplay
+    from resources.lib import playmessages
 
     plays, _, _ = _playback(tmp_path, roll=lambda body: 2425)  # "Expired catchup asset"
     with pytest.raises(provider.errors.CatchupExpiredError) as e:
         plays.play_live({"id": "11", "media_id": "LIVE$11"}, {"start": "2026-10-27T03:00:00Z", "end": 0, "flags": {"ct"}})
     # A dialog in the add-on's words, not the server's code.
-    assert e.value.kind in quickplay.ERRORS and isinstance(e.value, provider.errors.ArchiveUnavailableError)
+    assert e.value.kind in playmessages.ERRORS and isinstance(e.value, provider.errors.ArchiveUnavailableError)
 
 
 def test_play_live_plays_a_programme_not_on_yet_live(tmp_path):
@@ -417,7 +405,7 @@ def test_epg_takes_a_refused_day_beyond_the_guide_for_its_end():
         start = "%sT%02d:00:00Z" % (date, offset)
         return {"1001": [{"slot_type": "schedule", "start_time": start, "end_time": start}]}
 
-    assert len(_epg(_guide(block), past_days=0, days_ahead=13)["1001"]) == 16  # today and tomorrow
+    assert len(_epg(_guide(block), past_days=0, days_ahead=13)[0]["1001"]) == 16  # today and tomorrow
 
     def refused_today(date, offset):
         e = provider.ApiError("HTTP 400")
@@ -632,11 +620,11 @@ def test_getting_ready_ahead_renews_what_runs_out_soon_and_registers_again(tmp_p
 def test_kept_blocks_are_read_only_when_their_programmes_are_asked_for(tmp_path, monkeypatch):
     guide, asked = _guide_client()
     cache = str(tmp_path / "blocks")
-    first = guide.epg_blocks(past_days=0, days_ahead=1, stations={"1001"}, cache_dir=cache)
+    first, _ = guide.epg_blocks(past_days=0, days_ahead=1, stations={"1001"}, cache_dir=cache)
     read = []
     original = provider.guideblocks.read_channels
     monkeypatch.setattr(provider.guideblocks, "read_channels", lambda *a: read.append(a) or original(*a))
-    again = guide.epg_blocks(past_days=0, days_ahead=1, stations={"1001"}, cache_dir=cache)
+    again, _ = guide.epg_blocks(past_days=0, days_ahead=1, stations={"1001"}, cache_dir=cache)
     assert len(asked) == 16 and read == []  # each kept block's header only
     assert [b.digest() for _, _, b in again] == [b.digest() for _, _, b in first]  # fetched or kept: the same file
     assert again[0][2].programmes == 1 and again[0][2].channels()["1001"][0]["description"] == "x" and len(read) == 1
@@ -741,7 +729,8 @@ def test_a_removed_device_is_attached_again_once_and_what_was_its_forgotten(tmp_
     # The attaching call itself refused (fresh_login), or a call that must not attach: given up.
     login, api, _ = _login(tmp_path / "attach", [removed])
     with pytest.raises(provider.AuthError):
-        login.call("/user/account", "F", params={"fresh_login": "true"})
+        login.valid_account(force=True, fresh_login=True)
+    assert [path for path, _ in api.sent] == ["/user/account"]
     login, api, _ = _login(tmp_path / "remove", [removed])
     with pytest.raises(provider.AuthError):
         login.call("/setting/devices/d", "F", method="DELETE", readd=False)
