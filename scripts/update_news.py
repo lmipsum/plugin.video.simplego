@@ -44,10 +44,10 @@ def block(version, date, lines):
 
 
 def merged(new, old):
-    """Return the new block followed by as many older blocks as fit in LIMIT."""
-    out = new
+    """Return the new block followed by as many older blocks as fit in LIMIT; an older one of its version is left out."""
+    out, version = new, new.split(" ", 1)[0] + " "
     for older in (b.strip() for b in old.split("\n\n")):
-        if older and not older.startswith(new.split("\n", 1)[0]) and len(out) + 2 + len(older) <= LIMIT:
+        if older and not older.startswith(version) and len(out) + 2 + len(older) <= LIMIT:
             out += "\n\n" + older
     return out[:LIMIT]
 

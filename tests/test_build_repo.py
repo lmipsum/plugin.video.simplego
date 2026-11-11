@@ -34,6 +34,20 @@ def test_the_repository_add_on_zips_as_kodi_installs_it(tmp_path):
     assert os.path.basename(out).startswith("repository.lmipsum-")
 
 
+def test_only_the_included_files_go_in_without_compiled_python(tmp_path):
+    folder = tmp_path / "addon"
+    (folder / "resources" / "__pycache__").mkdir(parents=True)
+    (folder / "addon.xml").write_text(PLUGIN % "1.0.0", encoding="utf-8")
+    (folder / "resources" / "a.py").write_text("", encoding="utf-8")
+    (folder / "resources" / "b.pyc").write_bytes(b"")
+    (folder / "resources" / "__pycache__" / "a.cpython-313.pyc").write_bytes(b"")
+    (folder / "tests.py").write_text("", encoding="utf-8")
+    out = repo.zip_folder(str(folder), str(tmp_path / "dist"), ["addon.xml", "resources"])
+    with zipfile.ZipFile(out) as z:
+        assert sorted(z.namelist()) == ["plugin.video.x/addon.xml", "plugin.video.x/resources/a.py"]
+    assert repo.main(["version"]) == 0
+
+
 def test_published_add_ons_are_listed_with_their_assets_and_a_changing_checksum(tmp_path):
     pages = tmp_path / "pages"
     repository = repo.zip_folder(os.path.join(os.path.dirname(os.path.dirname(SCRIPT)), repo.REPOSITORY), str(tmp_path))

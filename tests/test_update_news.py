@@ -28,6 +28,8 @@ def test_a_new_version_comes_first_and_old_ones_only_as_far_as_kodi_allows():
     assert merged == "v1.0.1 (2026-11-02)\n- New\n\nv1.0.0 (2026-10-01)\n- First"
     # Run again for the same version (a release retried): its block is not doubled.
     assert news.merged("v1.0.1 (2026-11-02)\n- New", merged).count("v1.0.1") == 1
+    # Retried on another day: still once.
+    assert news.merged("v1.0.1 (2026-11-03)\n- New", merged).count("v1.0.1") == 1
 
 
 def test_the_news_goes_into_addon_xml_escaped_and_replaces_the_old():
