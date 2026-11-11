@@ -107,12 +107,10 @@ def export(client, restart=True, progress=None, pause=None):
     monitor = xbmc.Monitor()
     lock = homelock.HomeLock(home, EXPORT_PROPERTY, EXPORT_STALE)
     waited = time.time()
-    while not monitor.abortRequested():
-        if not lock.held() or time.time() - waited > EXPORT_WAIT:
+    while not monitor.abortRequested() and not lock.try_take():
+        if time.time() - waited > EXPORT_WAIT:
             lock.take()
-            # Ours if it is still our mark after a moment: of two exports that found it free, the last one's stays.
-            if monitor.waitForAbort(0.2) or lock.is_mine():
-                break
+            break
         report("wait")
         monitor.waitForAbort(0.5)
     # Marked done from its start, so the settings change that started it does not start another.

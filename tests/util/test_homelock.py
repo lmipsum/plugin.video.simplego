@@ -48,3 +48,20 @@ def test_a_stale_mark_holds_nothing():
     assert not lock.held()
     home.setProperty("busy", str(time.time()))  # a mark of the time alone
     assert lock.held()
+
+
+def test_a_free_lock_is_taken_and_a_held_one_is_not(monkeypatch):
+    monkeypatch.setattr(homelock.time, "sleep", lambda seconds: None)
+    home = _Home()
+    first, second = homelock.HomeLock(home, "busy", 30), homelock.HomeLock(home, "busy", 30)
+    assert first.try_take() and first.is_mine()
+    assert not second.try_take() and first.is_mine()
+
+
+def test_of_two_that_found_it_free_at_once_only_the_last_one_has_it(monkeypatch):
+    home = _Home()
+    first, second = homelock.HomeLock(home, "busy", 30), homelock.HomeLock(home, "busy", 30)
+    # The second takes it while the first waits to see its mark stay.
+    monkeypatch.setattr(homelock.time, "sleep", lambda seconds: second.take())
+    assert not first.try_take()
+    assert second.is_mine()
