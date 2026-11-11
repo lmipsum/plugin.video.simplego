@@ -40,11 +40,11 @@ class ProgrammeViews:
         # The provider's list has no plots (its "description" is empty): the info pages have them,
         # fetched in one go with the cast if a cast setting wants it.
         cast_kinds = kodiutil.cast_kinds()
-        keys = [(kind, item["id"]) for kind, item in zip(kinds, items) if cast_kinds or not item.get("description")]
+        keys = [(kind, item["id"]) for kind, item in zip(kinds, items, strict=True) if cast_kinds or not item.get("description")]
         pages = listing.pages(self._call, keys, full=bool(cast_kinds))
         plots = {key: page.get("plot") or "" for key, page in pages.items()}
         cast = rows.cast_of(pages, cast_kinds)
-        for kind, item in zip(kinds, items):
+        for kind, item in zip(kinds, items, strict=True):
             year = guidedata.year(item)
             li = xbmcgui.ListItem(rows.film_title(item.get("name") or "?", year if kind == "program" else None))
             picture = item.get("image_url") or ""

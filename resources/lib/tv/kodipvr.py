@@ -140,7 +140,7 @@ def _export(client, restart, report, pause):
         channels,
         kodiutil.PROFILE,
         lambda **kw: base + "?" + urlencode(kw),
-        **dict(zip(("past_days", "days_ahead"), guide_days())),
+        **dict(zip(("past_days", "days_ahead"), guide_days(), strict=True)),
         block_dir=onair.BLOCKS,
         info_types=sorted(kodiutil.cast_kinds()),
         progress=report,

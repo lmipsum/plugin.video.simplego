@@ -64,7 +64,7 @@ def _fits(track_groups, hint):
     """Tell whether changes found before still fit these timelines."""
     if hint is None or len(hint) != len(track_groups):
         return False
-    return all(i < len(g.segments) for g, found in zip(track_groups, hint) for i in found)
+    return all(i < len(g.segments) for g, found in zip(track_groups, hint, strict=True) for i in found)
 
 
 def search(group, key):
