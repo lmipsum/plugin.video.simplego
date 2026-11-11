@@ -133,7 +133,7 @@ def test_logged_out_it_logs_in_by_phone_first(play, monkeypatch):
     monkeypatch.setattr(phonelogin, "wait_for_token", lambda client: "token")
     from resources.lib.login import loginstate
 
-    monkeypatch.setattr(loginstate, "login_changed", lambda: None)
+    monkeypatch.setattr(loginstate, "login_changed", lambda client: None)
     p.do_play()
     assert ("login", "token") in p.client.calls and len(p.started_streams) == 1
 

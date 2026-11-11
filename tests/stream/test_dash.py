@@ -40,3 +40,14 @@ def test_no_timeshift_keeps_only_the_live_edge():
     assert '<SegmentTimeline><S t="9800" d="40" r="4"/></SegmentTimeline>' in out
     assert 'timeShiftBufferDepth="PT20S"' in out
     assert dash.align_live_edges(mpd) == mpd  # one track, no window: as it was
+
+
+def test_tracks_are_told_apart_by_their_content_type_or_mime_type():
+    assert dash.is_video('<AdaptationSet contentType="video">') and dash.is_video('<AdaptationSet mimeType="video/mp4">')
+    assert dash.is_audio('<AdaptationSet mimeType="audio/mp4">') and not dash.is_audio('<AdaptationSet contentType="video">')
+    assert dash.is_text('<AdaptationSet contentType="text">') and dash.is_text('<Representation codecs="stpp"/>')
+
+
+def test_a_static_manifest_is_told_from_a_live_one():
+    assert dash.is_static('<MPD xmlns="urn:mpeg:dash:schema:mpd:2011" type="static">')
+    assert not dash.is_static('<MPD type="dynamic"><Period type="static"/>')

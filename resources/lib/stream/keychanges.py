@@ -8,7 +8,6 @@ fragment heads for a film). Other tracks change at the same moments, so two
 heads around each of the video's changes usually settle them.
 """
 
-import re
 from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 
@@ -28,7 +27,7 @@ def groups(asets, mpd_url):
     out = []
     for aset in asets:
         tags = dash.representations(aset)
-        template = re.search(r"<SegmentTemplate\b.*?</SegmentTemplate>", aset, re.S)
+        template = dash.SEGMENT_TEMPLATE.search(aset)
         if not tags or not template or not dash.init_url(aset, tags[0], mpd_url):
             continue
         scale, segments = dash.parse_timeline(template.group(0))
@@ -39,7 +38,7 @@ def groups(asets, mpd_url):
 
 def video_index(track_groups):
     """Return the index of the video group; 0 if there is none."""
-    return next((i for i, g in enumerate(track_groups) if 'contentType="video"' in g.aset), 0)
+    return next((i for i, g in enumerate(track_groups) if dash.is_video(g.aset)), 0)
 
 
 def find(track_groups, key, hint=None):

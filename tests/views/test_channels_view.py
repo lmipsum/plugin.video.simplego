@@ -7,11 +7,12 @@ from kodiside import channel_list
 
 from resources.lib import clientfactory
 from resources.lib import kodiutil
+from resources.lib.util import localtime
 from resources.lib.views import listing
 
 
 def test_a_channel_row_shows_what_comes_next_and_the_programme_on(monkeypatch):
-    monkeypatch.setattr(kodiutil, "local_time", lambda iso, date=True: "21:05")
+    monkeypatch.setattr(localtime, "local_time", lambda iso, date=True: "21:05")
     p = channel_list()
     channel = {"number": 1, "name": "M1", "logo": "logo.png", "genres": []}
     on = {
@@ -53,9 +54,8 @@ def test_the_channel_playing_is_selected_in_the_skins_colour_not_its_category_co
     news = dict(CHANNEL, genres=["Hír- és politikai műsorok"])
     other = p.channel_item(news, ON_AIR, None, False, True)
     assert "[COLOR" in other.label and "selected" not in other.__dict__
-    p.playing = news["id"]
     following = {"start_time": "2026-10-30T20:45:00Z", "end_time": "2026-10-30T21:00:00Z", "description": "Híradó"}
-    playing = p.channel_item(news, ON_AIR, following, False, True)
+    playing = p.channel_item(news, ON_AIR, following, False, True, playing=True)
     assert playing.selected is True and not playing.label.startswith("[COLOR")
     # The next programme grey and italic there too, as on every row.
     assert playing.label.split("[CR]")[1].startswith("[I][COLOR grey]Next: ")
@@ -90,7 +90,7 @@ def test_a_channel_row_fills_the_side_panel_and_the_info_page():
 
 def test_a_channel_row_names_the_programme_with_its_start_and_episode(kodi, monkeypatch):
     p = channel_list()
-    monkeypatch.setattr(kodiutil, "local_time", lambda iso, date=True: "21:00")
+    monkeypatch.setattr(localtime, "local_time", lambda iso, date=True: "21:00")
     # The channel is not named: it is the side panel's logo and the info page's studio.
     # The episode grey, as on every surface.
     assert p.channel_item(CHANNEL, ON_AIR, None, True, 0).label == "21:00 Sorozat" + G % " | Első rész"
@@ -127,7 +127,7 @@ def test_the_channel_list_has_the_cast_and_colours_the_settings_ask_for(kodi, mo
 
     added = []
     monkeypatch.setattr(xbmcplugin, "addDirectoryItem", lambda handle, url, li, isFolder=False: added.append(li), raising=False)
-    monkeypatch.setattr(kodiutil, "local_time", lambda iso, date=True: "21:00")
+    monkeypatch.setattr(localtime, "local_time", lambda iso, date=True: "21:00")
     asked = []
 
     def pages_for(client, keys, out_dir, full=True):
@@ -262,3 +262,24 @@ def test_a_channel_list_asked_for_while_one_is_being_made_ends_as_failed(kodi, m
     kodi.PROPERTIES[channels.LISTING] = str(time.time() - channels.LISTING_STALE - 1)
     view.do_channels()
     assert len(made) == 2
+
+
+def test_while_something_plays_the_list_selects_the_channel_last_played(kodi, monkeypatch):
+    import xbmc
+    import xbmcplugin
+
+    from resources.lib.service import quickplay
+
+    p = channel_list()
+    added = []
+    monkeypatch.setattr(xbmcplugin, "addDirectoryItem", lambda handle, url, li, isFolder=False: added.append(li), raising=False)
+    other = dict(CHANNEL, id="C2", number=2, name="M2", station_id="S2")
+    view = {"channels": [dict(CHANNEL, station_id="S1"), other], "now": {}, "subscribed": None, "favourites": None}
+    monkeypatch.setattr(listing, "list_view", lambda call, scope=None: view)
+    monkeypatch.setattr(xbmc.Player, "isPlaying", lambda self: True)
+    kodiutil.home().setProperty(quickplay.PLAYING, "C2")
+    try:
+        p.do_channels()
+    finally:
+        kodiutil.home().clearProperty(quickplay.PLAYING)
+    assert [li.__dict__.get("selected", False) for li in added] == [False, True]

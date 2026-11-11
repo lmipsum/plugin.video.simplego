@@ -28,7 +28,7 @@ def resolve(call, params):
 
 
 class PlayViews:
-    """The plugin's own playback (see plugin.ROUTES).
+    """The plugin's own playback (see views.routes).
 
     :param call: the plugin call (see views.call.Call)
     """
@@ -62,7 +62,7 @@ class PlayViews:
             if not token:
                 return call.end(False)
             client.login_with_refresh_token(token)
-            loginstate.login_changed()
+            loginstate.login_changed(client)
         try:
             stream, proxy = streamsession.start_stream(client, self._channel(), guidedata.from_param(params.get("programme")))
         except provider.errors.CatchupExpiredError as e:

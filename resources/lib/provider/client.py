@@ -13,7 +13,7 @@ from resources.lib.util import sharedfile
 
 
 class _Part:
-    """A Client attribute that is one of its parts': the method or value of that name there.
+    """A read-only Client attribute that is one of its parts': the method or value of that name there.
 
     The add-on asks the client, not its parts (they are the client's own business).
     """
@@ -29,6 +29,13 @@ class _Part:
         if client is None:
             return self
         return getattr(getattr(client, self._part), self._name)
+
+    def __set__(self, client, value):
+        raise AttributeError("%s is read-only" % self._name)
+
+
+class _WritablePart(_Part):
+    """A Client attribute that is one of its parts' values, set there when assigned."""
 
     def __set__(self, client, value):
         setattr(getattr(client, self._part), self._name, value)
@@ -50,7 +57,7 @@ class Client:
 
     # The login and the account.
     authed = _Part("auth")
-    guest = _Part("auth")
+    guest = _WritablePart("auth")
     device_id = _Part("auth")
     is_logged_in = _Part("auth")
     login_expires = _Part("auth")
@@ -82,7 +89,6 @@ class Client:
     now_and_next = _Part("guide")
     programme_at = _Part("guide")
     epg_blocks = _Part("guide")
-    epg_stats = _Part("guide")
     details = _Part("guide")
     # Stream sessions.
     play_live = _Part("playback")
@@ -91,7 +97,7 @@ class Client:
     close_stale_sessions = _Part("playback")
     get_ready = _Part("playback")
     # What other clients of the profile wrote, taken up (and this one's changes written).
-    reload = _Part("state", "save")
+    sync = _Part("state", "save")
 
     def __init__(self, profile_dir, ca_bundle=None, debug=None, lock_wait=None):
         self.state = statefile.State(os.path.join(profile_dir, core.STATE_FILE), debug=debug, lock_wait=lock_wait)

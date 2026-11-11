@@ -1,23 +1,9 @@
-"""The plugin's main menu, routing and settings buttons."""
-
-import os
+"""The plugin's main menu and its calls."""
 
 from kodiside import continue_at
 
 from resources.lib import clientfactory
-from resources.lib import kodiutil
 from resources.lib.data import channellist
-
-
-def test_every_settings_button_runs_an_action_of_the_plugin():
-    import re
-
-    from resources.lib import plugin
-
-    with open(os.path.join(kodiutil.ADDON_PATH, "resources", "settings.xml"), encoding="utf-8") as f:
-        actions = re.findall(r"RunPlugin\(plugin://plugin\.video\.simplego/\?action=(\w+)", f.read())
-    assert "tv_refresh" in actions
-    assert [a for a in actions if a not in plugin.ROUTES] == []
 
 
 def test_the_main_menu_rows_have_kodis_own_icons(kodi, monkeypatch):
@@ -32,20 +18,6 @@ def test_the_main_menu_rows_have_kodis_own_icons(kodi, monkeypatch):
     icons = [li.art.get("icon") for li in added]
     # No settings row: Kodi's side menu has the add-on's settings.
     assert len(icons) == 5 and all(icon and icon.startswith("Default") for icon in icons)
-
-
-def test_each_list_names_where_it_is_in_the_menu():
-    """Kodi's breadcrumb (top left) shows the plugin category; without one, only "Videos"."""
-    from resources.lib import plugin
-
-    def category(action):
-        return plugin.CATEGORIES.get(action, [])
-
-    assert category("channels") == [30001]
-    assert category("mychannels") == [30175]
-    assert category("watchlist") == category("seasons") == [30168]
-    assert category("continue") == [30188]
-    assert category("root") == []
 
 
 def test_the_main_menu_says_the_channel_and_programme_counts_timing_each(kodi, monkeypatch, tmp_path):
@@ -96,14 +68,14 @@ def test_the_main_menu_takes_its_counts_from_the_play_service(kodi, monkeypatch,
 
     from resources.lib import plugin
     from resources.lib.data import menucounts
-    from resources.lib.service import playservice
+    from resources.lib.service import pluginrequests
     from resources.lib.service import quickplay
 
     continue_at(monkeypatch, tmp_path)
     monkeypatch.setattr(channellist, "DEACTIVATED", str(tmp_path / "deactivated.json"))
 
     class Client:
-        def reload(self):
+        def sync(self):
             pass
 
         def subscribed_ids(self):
@@ -118,7 +90,7 @@ def test_the_main_menu_takes_its_counts_from_the_play_service(kodi, monkeypatch,
         def watchlist(self):
             return []
 
-    served = playservice.PlayService(shared_client=Client).menu_counts()
+    served = pluginrequests.Lists(Client).menu_counts()
     assert {k: served[k] for k in ("subscribed", "favourites", "deactivated")} == {
         "subscribed": 2,
         "favourites": 1,

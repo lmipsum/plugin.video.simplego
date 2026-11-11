@@ -4,7 +4,6 @@ iptvfiles.py writes the files.
 """
 
 import os
-import threading
 import time
 from urllib.parse import urlencode
 
@@ -18,6 +17,8 @@ from resources.lib.data import channellist
 from resources.lib.data import onair
 from resources.lib.tv import iptvfiles
 from resources.lib.tv import iptvsimple
+from resources.lib.util import homelock
+from resources.lib.util import localtime
 
 PVR_DIR = "special://profile/addon_data/%s/%s/" % (kodiutil.ADDON_ID, iptvfiles.OUT_DIR)
 PVR_M3U = PVR_DIR + iptvfiles.PLAYLIST
@@ -103,15 +104,13 @@ def export(client, restart=True, progress=None):
     report = progress or (lambda stage, done=0, total=0: None)
     home = kodiutil.home()
     monitor = xbmc.Monitor()
-    # Ours if it still reads this after a moment: two exports that find the
-    # mark free at the same time both set it, and only the last one stays.
-    mark = "%f %d-%d" % (time.time(), os.getpid(), threading.get_ident())
+    lock = homelock.HomeLock(home, EXPORT_PROPERTY, EXPORT_STALE)
     waited = time.time()
     while not monitor.abortRequested():
-        busy = home.getProperty(EXPORT_PROPERTY)
-        if not busy or time.time() - float(busy.split()[0]) > EXPORT_STALE or time.time() - waited > EXPORT_WAIT:
-            home.setProperty(EXPORT_PROPERTY, mark)
-            if monitor.waitForAbort(0.2) or home.getProperty(EXPORT_PROPERTY) == mark:
+        if not lock.held() or time.time() - waited > EXPORT_WAIT:
+            lock.take()
+            # Ours if it is still our mark after a moment: of two exports that found it free, the last one's stays.
+            if monitor.waitForAbort(0.2) or lock.is_mine():
                 break
         report("wait")
         monitor.waitForAbort(0.5)
@@ -124,8 +123,7 @@ def export(client, restart=True, progress=None):
         home.setProperty(EXPORTED_PROPERTY, before)
         raise
     finally:
-        if home.getProperty(EXPORT_PROPERTY) == mark:
-            home.clearProperty(EXPORT_PROPERTY)
+        lock.release()
 
 
 def _export(client, restart, report):
@@ -161,7 +159,7 @@ def _export(client, restart, report):
         )
     )
     now = time.time()
-    last = s(30126) % (("%s %s" % (kodiutil.local_date(now), kodiutil.local_clock(now)),) + tuple(result))
+    last = s(30126) % (("%s %s" % (localtime.local_date(now), localtime.local_clock(now)),) + tuple(result))
     # The public guide (no login, or a refused one) lacks channels of the subscription.
     addon.setSetting("pvr_last", last if client.authed else "%s · %s" % (last, s(30127)))
     # For the service's schedule: a Kodi start does not export again before it is due.
@@ -246,14 +244,7 @@ def switch_off(progress=None):
         os.remove(instance)
         report(10)
     report(90)
-    for name in (
-        iptvfiles.PLAYLIST,
-        iptvfiles.GUIDE,
-        iptvfiles.GENRE_MAP,
-        iptvfiles.GENRE_MAP_PLAIN,
-        iptvfiles.STATE,
-        iptvfiles.KEYS,
-    ):
+    for name in iptvfiles.OUTPUT_FILES + (iptvfiles.STATE, iptvfiles.KEYS):
         path = os.path.join(xbmcvfs.translatePath(PVR_DIR), name)
         if os.path.exists(path):
             os.remove(path)

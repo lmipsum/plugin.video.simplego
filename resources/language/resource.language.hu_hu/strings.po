@@ -42,10 +42,6 @@ msgctxt "#30023"
 msgid "Log out? This device is also removed from the account's devices, freeing its slot."
 msgstr "Kijelentkezel? Ez az eszköz a fiók eszközei közül is törlődik, így felszabadul a helye."
 
-msgctxt "#30030"
-msgid "Show in the TV menu"
-msgstr "Megjelenítés a TV menüben"
-
 msgctxt "#30031"
 msgid "IPTV Simple Client could not be installed."
 msgstr "Az IPTV Simple Client nem telepíthető."

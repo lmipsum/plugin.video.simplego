@@ -58,7 +58,7 @@ def views(kodi, monkeypatch):
     from resources.lib.login import loginstate
 
     changes = []
-    monkeypatch.setattr(loginstate, "login_changed", lambda: changes.append("login"))
+    monkeypatch.setattr(loginstate, "login_changed", lambda client: changes.append("login"))
     monkeypatch.setattr(loginstate, "show_account", lambda client, fresh=False: changes.append("account"))
     client = Account()
     views = views_account.AccountViews(call("?action=logout", "-1", client=client))

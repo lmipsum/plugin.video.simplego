@@ -12,6 +12,7 @@ from urllib.parse import urlencode
 
 from resources.lib.provider import core
 from resources.lib.provider import errors
+from resources.lib.provider import servicecert
 from resources.lib.util import isotime
 
 # Full HD (see _ask_full_hd).
@@ -20,29 +21,19 @@ FULL_HD_REWIND = 15 * 60
 FULL_HD_HORIZON = 6 * 3600
 DEVICE_CLASS = re.compile(r"(mgr_(?:live|vod)_dash_[a-z]+_)[A-Za-z0-9]+_wv\d+")
 
+# The provider's error codes the client acts on.
+CODE_ADDRESS_BLOCKED = 7027
+CODE_DEVICE_REMOVED = 3008
+CODE_NOT_IN_ARCHIVE = 2401
+CODE_CATCHUP_EXPIRED = 2425
+CODE_NOT_SUBSCRIBED = 3097
+CODE_STREAM_LIMIT = 2413
 
-def unwrap_service_certificate(msg):
-    """Return the SignedDrmCertificate bytes of a SignedMessage{type=SERVICE_CERTIFICATE, msg=cert}; None if not one.
+# Seconds between beacons when the roll names no interval.
+DEFAULT_BEACON_INTERVAL = 240
+# How long the Widevine service certificate is kept (seconds).
+SERVICE_CERTIFICATE_KEPT = 7 * 24 * 3600
 
-    The licence server sends the whole SignedMessage; Android MediaDrm only accepts
-    the bare certificate. Parsed by hand, field 1 (type 5) then field 2 (length-delimited),
-    as Widevine's license_protocol.proto lays them out.
-    """
-    if msg[:3] != b"\x08\x05\x12":
-        return None
-    length, shift, pos = 0, 0, 3
-    while pos < len(msg):
-        b = msg[pos]
-        length |= (b & 0x7F) << shift
-        pos += 1
-        if not b & 0x80:
-            break
-        shift += 7
-    cert = msg[pos : pos + length]
-    return cert if len(cert) == length else None
-
-
-# The web client's profile: streams and licences are asked for as the web player asks.
 DEVICE_PROFILE = {
     "model": "Desktop",
     "osVersion": "10",
@@ -100,12 +91,9 @@ class Playback:
         if data.get("result") != "success":
             err = data.get("response") or {}
             msg = "%s -> HTTP %s, code %s: %s" % (path, r.status_code, err.get("code"), err.get("message"))
-            # 7027 "out of country blocked": despite the name, some VPN and data-centre addresses, not a country.
-            if err.get("code") == 7027:
+            if err.get("code") == CODE_ADDRESS_BLOCKED:
                 raise errors.GeoBlockedError(msg)
-            e = errors.ApiError(msg)
-            e.code = err.get("code")
-            raise e
+            raise errors.ApiError(msg, code=err.get("code"))
         return data.get("response") or {}
 
     def _register_device(self, channel_id):
@@ -158,16 +146,17 @@ class Playback:
             "sessionId": session_id,
             "enablelowlatency": "false",
         }
-        body = {"roll": {"isLive": True, "rightsMode": "LIVE", "inhome": "yes"}}
         if programme and not restart:
             body = {"roll": {"isLive": False, "rightsMode": "VOD_STREAMING", "startTime": programme["start"], "inhome": "yes"}}
+        else:
+            body = {"roll": {"isLive": True, "rightsMode": "LIVE", "inhome": "yes"}}
         roll = self._roll(channel, programme, params, body)
         laps("roll")
         session = {
             "channel_id": channel["id"],
             "media_id": channel["media_id"],
             "session_id": session_id,
-            "interval": int(roll.get("beacon_interval") or 240),
+            "interval": int(roll.get("beacon_interval") or DEFAULT_BEACON_INTERVAL),
         }
         # Recorded so a crash or failed start does not leave it counting against the stream limit.
         self._state.change(lambda st: st.update(open_sessions=(st.get("open_sessions") or []) + [session]))
@@ -177,10 +166,8 @@ class Playback:
             raise errors.ApiError("roll response has no manifest: %s" % json.dumps(roll)[:500])
         web_manifest = cdn[0]["base_uri"].rstrip("/") + "/" + roll["manifest_uri"].lstrip("/")
         if restart:
-            # From the programme's start the manifest keeps the whole programme in its window.
             web_manifest = web_manifest.replace("start=LIVE", "start=" + programme["start"], 1)
         manifest, window_end = _ask_full_hd(web_manifest, programme) if full_hd else (web_manifest, None)
-        # As the web player does: the roll's query and headers verbatim, raw Widevine body.
         lic_params = "mediaId=%s&ownerUid=%s&sessionId=%s&enablelowlatency=false" % (
             quote(channel["media_id"], safe=""),
             core.OWNER_UID,
@@ -225,27 +212,23 @@ class Playback:
     def _roll(self, channel, programme, params, body):
         """Open the stream session ("roll"), retrying once after a recoverable error.
 
-        :raises errors.ArchiveUnavailableError: the archive has not got it (2401)
-        :raises errors.CatchupExpiredError: its catch-up time is over (2425)
-        :raises errors.NotSubscribedError: the channel is outside the subscription (3097)
+        :raises errors.ArchiveUnavailableError: the archive has not got it
+        :raises errors.CatchupExpiredError: its catch-up time is over (when varies by channel, see continuelist)
+        :raises errors.NotSubscribedError: the channel is outside the subscription
         """
         try:
             return self._amp("/v1/client/roll", params, body, channel["id"])
         except errors.ApiError as e:
-            code = getattr(e, "code", None)
-            if code == 3008:
-                # 3008 "rights server denied authorization": the device was removed.
+            if e.code == CODE_DEVICE_REMOVED:
                 self._auth.readd_device()
                 self._register_device(channel["id"])
-            elif code == 2401 and programme:
+            elif e.code == CODE_NOT_IN_ARCHIVE and programme:
                 raise errors.ArchiveUnavailableError(str(e)) from e
-            elif code == 2425 and programme:
-                # "Expired catchup asset" (HTTP 468): when that comes varies by channel (see continuelist).
+            elif e.code == CODE_CATCHUP_EXPIRED and programme:
                 raise errors.CatchupExpiredError(str(e)) from e
-            elif code == 3097:
-                # "channel not in service or channel not found" (HTTP 469): not subscribed.
+            elif e.code == CODE_NOT_SUBSCRIBED:
                 raise errors.NotSubscribedError(str(e)) from e
-            elif code == 2413:
+            elif e.code == CODE_STREAM_LIMIT:
                 # Stream limit: leftover sessions still count. Closed only here, not on
                 # every start, to save a round trip per channel switch.
                 self.close_stale_sessions()
@@ -259,12 +242,11 @@ class Playback:
         Kodi's CDM only encrypts its client ID (privacy mode, as the web player) when given it.
         """
         st = self._state
-        if st.get("wv_service_cert") and st.get("wv_cert_at", 0) + 7 * 24 * 3600 > time.time():
+        if st.get("wv_service_cert") and st.get("wv_cert_at", 0) + SERVICE_CERTIFICATE_KEPT > time.time():
             return st["wv_service_cert"]
         try:
-            # A SignedMessage of type SERVICE_CERTIFICATE_REQUEST (4), nothing else.
-            r = self._api.http.post(license_url, data=b"\x08\x04", headers=headers, timeout=core.TIMEOUT)
-            cert = unwrap_service_certificate(r.content) if r.ok else None
+            r = self._api.http.post(license_url, data=servicecert.REQUEST, headers=headers, timeout=core.TIMEOUT)
+            cert = servicecert.unwrap(r.content) if r.ok else None
             if cert:
                 st["wv_service_cert"] = base64.b64encode(cert).decode()
                 st["wv_cert_at"] = time.time()

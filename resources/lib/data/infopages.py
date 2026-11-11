@@ -16,7 +16,10 @@ CREDIT_ROLES = {"Színész": "actor", "Rendező": "director", "Forgatókönyvír
 INFO_WORKERS = 3  # as provider.guide.EPG_WORKERS
 PAGE_CACHE = "pages.json"
 # A kept page not asked for this long is dropped.
-PAGE_KEPT = 30 * 86400
+DAY = 24 * 3600
+PAGE_KEPT = 30 * DAY
+# A kept page's last use is rewritten at most this often: the use alone is not worth a write each time.
+USE_REWRITTEN = DAY
 
 
 def keys_of(p):
@@ -84,7 +87,7 @@ def pages_for(client, keys, out_dir, full=True):
             kept["/".join(key)] = dict(page, used=now)
             changed = True
     for name in set(wanted) & set(kept):
-        if kept[name].get("used", 0) < now - 86400:  # rewrite at most daily just for "used"
+        if kept[name].get("used", 0) < now - USE_REWRITTEN:
             kept[name]["used"], changed = now, True
     stale = [name for name, page in kept.items() if page.get("used", 0) < now - PAGE_KEPT]
     for name in stale:

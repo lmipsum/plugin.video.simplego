@@ -46,3 +46,28 @@ def test_the_lists_default_order_and_a_deactivated_channel_without_its_programme
     assert "s4" not in view["now"] and "s6" not in view["now"] and "s1" in view["now"]
     managed = channellist.view(client, channellist.MANAGE)
     assert client.guided == 1 and managed["now"] == {}  # My channels reads no guide
+
+
+def test_a_channel_is_deactivated_by_its_id_as_number_or_text():
+    assert channellist.is_deactivated(4, {"4"}) and channellist.is_deactivated("4", {"4"})
+    assert not channellist.is_deactivated(2, {"4"})
+
+
+def test_after_a_refused_login_the_public_channels_are_listed_as_a_guest(kodi):
+    class Client:
+        guest = False
+
+        @property
+        def authed(self):
+            return not self.guest
+
+        def channel_list(self, scope="all", kind="all"):
+            return [{"id": 1, "station_id": "s1", "name": "C1"}]
+
+        def now_and_next(self, blocks):
+            return {}
+
+    client = Client()
+    view = channellist.public_view(client)
+    assert client.guest and view["subscribed"] is None and view["favourites"] is None
+    assert [c["id"] for c in view["channels"]] == [1]

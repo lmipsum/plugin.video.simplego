@@ -35,7 +35,7 @@ def guide(monkeypatch, programme):
     asked = []
     monkeypatch.setattr(onair, "on_air", lambda client, station, when: asked.append((station, when)) or (programme, None))
     monkeypatch.setattr(channellist, "by_station", lambda client: {"1246": {"name": "Mozi+ HD"}})
-    monkeypatch.setattr(watchoffer.kodiutil, "local_time", lambda iso: "2099.11.05. 20:00")
+    monkeypatch.setattr(watchoffer.localtime, "local_time", lambda iso: "2099.11.05. 20:00")
     return asked
 
 

@@ -48,13 +48,11 @@ PROGRAMMES = {
 
 
 def _blocks(*blocks):
-    """The guide's blocks as Client.epg_blocks returns them, from (date, offset, programmes by station)."""
-    return [(date, offset, GuideBlock(channels=channels)) for date, offset, channels in blocks]
+    """The guide's blocks and counts as Client.epg_blocks returns them, from (date, offset, programmes by station)."""
+    return [(date, offset, GuideBlock(channels=channels)) for date, offset, channels in blocks], {}
 
 
 class FakeClient:
-    epg_stats = {}  # the guide's own count of blocks fetched and kept
-
     def epg_blocks(self, past_days=1, days_ahead=7, **kw):
         return _blocks((None, None, PROGRAMMES))
 
@@ -125,8 +123,6 @@ def test_only_the_blocks_that_changed_are_made_again(tmp_path):
     class Client:
         late_title = "Late"
 
-        epg_stats = {}  # the guide's own count of blocks fetched and kept
-
         def epg_blocks(self, **kw):
             # The early programme runs into the second block too: in the guide once.
             return _blocks(
@@ -155,8 +151,6 @@ def test_with_the_cast_an_unchanged_block_is_not_read_again(tmp_path):
     class Client:
         late_title = "Late"
         asked = []
-
-        epg_stats = {}  # the guide's own count of blocks fetched and kept
 
         def epg_blocks(self, **kw):
             return _blocks(
@@ -240,8 +234,6 @@ def test_genre_map_and_category_order(tmp_path):
     }
 
     class Client:
-        epg_stats = {}  # the guide's own count of blocks fetched and kept
-
         def epg_blocks(self, past_days=1, days_ahead=7, **kw):
             return _blocks((None, None, progs))
 
@@ -348,8 +340,6 @@ def test_info_pages_give_the_cast_fetched_once(tmp_path):
 
 def test_export_reports_progress_and_can_be_cancelled(tmp_path):
     class Client:
-        epg_stats = {}  # the guide's own count of blocks fetched and kept
-
         def epg_blocks(self, progress=None, **kw):
             progress(1, 2)
             progress(2, 2)
@@ -379,8 +369,6 @@ def test_catchup_in_playlist_and_guide(tmp_path):
     progs = {"1001": [first, later]}
 
     class Client:
-        epg_stats = {}  # the guide's own count of blocks fetched and kept
-
         def epg_blocks(self, **kw):
             return _blocks((None, None, progs))
 

@@ -309,7 +309,7 @@ def _proxy(http, logged, served=False):
     proxy = licproxy.LicenceProxy(
         http, "https://lic", {}, logged.append, manifest_url="https://cdn/1080", fallback_url="https://cdn/web"
     ).start()
-    proxy._keys.rewrite = lambda text, url: manifest.Rewritten(text, "")
+    proxy.rewriter.rewrite = lambda text, url: manifest.Rewritten(text, "")
     proxy._manifest_served = served
     return proxy
 
@@ -320,7 +320,7 @@ def test_a_refused_full_hd_manifest_plays_the_usual_one_instead():
     try:
         assert proxy.respond(localserver.Request("GET", "/manifest", {}, b"")).status == 200
         assert http.got == ["https://cdn/1080", "https://cdn/web"]
-        assert logged[0] == "Full HD profile refused (HTTP 404): playing the usual one"
+        assert logged[0] == "manifest refused (HTTP 404): playing the fallback"
         # From then on the usual one only.
         proxy.respond(localserver.Request("GET", "/manifest", {}, b""))
         assert http.got[2:] == ["https://cdn/web"]
@@ -334,5 +334,16 @@ def test_a_full_hd_manifest_failing_mid_stream_is_not_swapped_under_the_player()
     try:
         assert proxy.respond(localserver.Request("GET", "/manifest", {}, b"")).status == 502
         assert http.got == ["https://cdn/1080"]
+    finally:
+        proxy.stop()
+
+
+def test_a_proxy_tells_its_own_addresses():
+    proxy = licproxy.LicenceProxy(transport.Session(), "http://unused", {}, lambda msg: None)
+    assert not proxy.serves("http://127.0.0.1:1/manifest")  # not serving yet
+    proxy.start()
+    try:
+        assert proxy.serves(proxy.manifest) and proxy.serves(proxy.base + "/init?u=x")
+        assert not proxy.serves(proxy.base + "0/manifest") and not proxy.serves("/some/file.mkv")
     finally:
         proxy.stop()

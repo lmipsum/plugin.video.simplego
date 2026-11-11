@@ -40,6 +40,8 @@ GENRE_MAP = "genres.xml"
 # Without mappings, for the "colours" setting off: a separate file, so switching changes
 # genresPath and IPTV Simple restarts to read it.
 GENRE_MAP_PLAIN = "genres-plain.xml"
+# The files IPTV Simple reads.
+OUTPUT_FILES = (GUIDE, PLAYLIST, GENRE_MAP, GENRE_MAP_PLAIN)
 
 
 # Too broad to colour by when a programme has a more telling category; listed last.
@@ -98,15 +100,14 @@ def export(
     :return: (channel count, programme count)
     """
     out = os.path.join(profile_dir, OUT_DIR)
-    if not os.path.isdir(out):
-        os.makedirs(out)
+    os.makedirs(out, exist_ok=True)
     stats = {} if stats is None else stats
     report = progress or (lambda stage, done=0, total=0: None)
 
     # Monotonic: stands still while the device sleeps (wall clock once logged 11 h "writing").
     started = time.monotonic()
     by_station = {c["station_id"]: c for c in channels}
-    fetched = client.epg_blocks(
+    fetched, block_counts = client.epg_blocks(
         past_days=past_days,
         days_ahead=days_ahead,
         stations=set(by_station),
@@ -115,7 +116,7 @@ def export(
     )
     # (date, offset, whether the first, GuideBlock)
     blocks = [(date, offset, i == 0, block) for i, (date, offset, block) in enumerate(fetched)]
-    stats.update(client.epg_stats, guide=time.monotonic() - started)
+    stats.update(block_counts, guide=time.monotonic() - started)
     started = time.monotonic()
     pages, block_keys = {}, None
     if info_types:
@@ -131,8 +132,7 @@ def export(
     # Unchanged input: no rewrite, so IPTV Simple has nothing new to read.
     key = _digest([channels, keys, plugin_url(action="play", id="", media="")])
     last = _read_state(out)
-    files = (GUIDE, PLAYLIST, GENRE_MAP, GENRE_MAP_PLAIN)
-    if last.get("key") == key and all(os.path.exists(os.path.join(out, name)) for name in files):
+    if last.get("key") == key and all(os.path.exists(os.path.join(out, name)) for name in OUTPUT_FILES):
         stats.update(write=time.monotonic() - started, unchanged=True)
         return len(channels), last["programmes"]
     count = 0
@@ -332,7 +332,7 @@ def _programme(channel_id, p, channel_genre=None, info=None, catchup=False):
     image = guidedata.image(p)
     if image:
         parts.append("<icon src=%s/>" % quoteattr(image))
-    # The number the rating says ("18+" is 18 here; the lock counts it as 19, see guidedata.rating_age).
+    # The number the rating says ("18+" is 18 here; the lock counts it as guidedata.ADULT_AGE).
     rating = guidedata.rating_number(p.get("ratings"))
     if rating is not None:
         parts.append("<rating><value>%d</value></rating>" % rating)

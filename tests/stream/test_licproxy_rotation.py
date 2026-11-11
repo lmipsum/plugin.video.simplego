@@ -333,3 +333,17 @@ def test_only_the_video_track_is_watched_for_live_key_changes():
     files[BASE + "h/1015"] = fragment("audio-a", PAIR_A)
     proxy.rewrite(later, MPD_URL)
     assert proxy.live_changes == () and BASE + "h/1015" not in http.fetched
+
+
+def test_a_key_change_to_no_key_plays_in_one_part_and_is_not_kept():
+    class Http(SplitHttp):
+        def get(self, url, headers=None, timeout=None):
+            response = super().get(url, headers, timeout)
+            track, time = url[len(BASE) :].split("/")
+            if track == "h" and time != "Init" and int(time) >= 328:
+                response.content = box(b"moof", b"")  # the sound's later fragments name no key
+            return response
+
+    proxy = make_rewriter(Http())
+    proxy.rewrite(SPLIT_MPD, MPD_URL)
+    assert proxy.change_times == () and proxy.found_changes is None and proxy.part == 0
