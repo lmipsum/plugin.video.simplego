@@ -66,9 +66,10 @@ Without updates: install `plugin.video.simplego-<version>.zip` from the same rel
 
 ## Logging in
 
-Choose *Log in* in the main menu. Scan the QR code with a phone on the same network, tap
-*Log in with Telekom account*, log in with your TV GO e-mail address and password, then copy the
-**web address** of the page you land on (not its text) and send it back on the add-on's page.
+Choose *Log in* in the main menu. On a phone or tablet, tap the address under the QR code; on other
+devices, scan the QR code with a phone on the same network. Tap *Log in with Telekom account*, log in
+with your TV GO e-mail address and password, then copy the **web address** of the page you land on
+(not its text) and send it back on the add-on's page.
 The login lasts about a year. The add-on never sees your password, only the login it gets back.
 
 ## Kodi TV
