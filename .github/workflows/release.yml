@@ -1,9 +1,9 @@
 name: release
 
-# Run by hand on main once dev is merged and addon.xml has the new version
+# Run by hand on main once dev is merged (a pull request: main takes no push, see the main ruleset)
+# with addon.xml's new version and its news, both raised on dev (scripts/update_news.py)
 # (Actions → release → Run workflow, or `gh workflow run release.yml --ref main`).
-# It writes the news from the feat:/fix: commits (see scripts/update_news.py), commits it,
-# tags that commit vX.Y.Z and publishes the installable zip. Merge main back into dev afterwards.
+# It tags main's commit vX.Y.Z and publishes the installable zip, its notes the version's news.
 # With submit_to_kodi (on unless unticked) it also opens the pull request to Kodi's official repository,
 # where users install and update the add-on from (see kodi-submit.yml). That repository wants few
 # updates (https://kodi.wiki/view/Add-on_rules#Updates): untick it for a version not worth one.
@@ -36,7 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          fetch-depth: 0 # the commits since the last tag make the news
+          fetch-depth: 0 # the tags, to refuse a version released already
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: "3.12"
@@ -53,17 +53,15 @@ jobs:
           echo "VERSION=$version" >> "$GITHUB_ENV"
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: News
-        run: python scripts/update_news.py > notes.md
+        # Written on dev with the version raised: none for this version, nothing is released.
+        run: python scripts/update_news.py notes > notes.md
       - name: Build
         # Before the tag: a failed build leaves nothing released, so the run can be repeated.
         run: python scripts/build_zip.py
-      - name: Commit the news and tag it
+      - name: Tag
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -am "Update the add-on news"
           git tag "v$VERSION"
-          git push origin HEAD:main "v$VERSION"
+          git push origin "v$VERSION"
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}

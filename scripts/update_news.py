@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Put this version's changes into addon.xml's <news>: the feat: and fix: commits since the last version tag.
 
-The release workflow runs it before tagging (see .github/workflows/release.yml) and commits the result.
+Run on dev with the version raised, its result committed with it ("build: raise the add-on version"): the
+release takes the news from addon.xml as it is (see .github/workflows/release.yml), as main takes no push.
+`update_news.py notes` prints this version's block from addon.xml, for the release notes; none: exit 1.
 Other commits (refactor:, test:, ci:, docs: ...) tell users nothing and stay out. Kodi shows the news on
 the add-on's page; kodi-addon-checker warns over LIMIT characters, so older versions' blocks go first.
 Prints this version's block, for the release notes.
@@ -27,9 +29,13 @@ def git(*args):
 
 
 def last_tag():
-    """Return the latest version tag reachable from HEAD; None before the first release."""
-    found = git("describe", "--tags", "--abbrev=0", "--match", "v*")
-    return found.stdout.strip() if found.returncode == 0 else None
+    """Return the latest version tag; None before the first release.
+
+    By version, not by reachability: a release tags main's merge of dev, which dev does not reach.
+    """
+    found = git("tag", "--list", "v*", "--sort=-v:refname")
+    tags = found.stdout.split() if found.returncode == 0 else []
+    return tags[0] if tags else None
 
 
 def changes(subjects):
@@ -60,11 +66,25 @@ def with_news(xml, news):
     return xml.replace("</assets>", "</assets>" + element, 1)
 
 
-def main():
+def notes(xml, version):
+    """Return this version's block of addon.xml's news; None if it has none."""
+    old = NEWS.search(xml)
+    blocks = unescape(old.group(1)).split("\n\n") if old else []
+    return next((b.strip() for b in blocks if b.startswith("v%s " % version)), None)
+
+
+def main(argv=()):
     path = os.path.join(ROOT, "addon.xml")
     with open(path, encoding="utf-8") as f:
         xml = f.read()
     version = re.search(r'<addon [^>]*version="([^"]+)"', xml).group(1)
+    if list(argv) == ["notes"]:
+        found = notes(xml, version)
+        if not found:
+            sys.stderr.write("addon.xml has no news for v%s: run update_news.py with the version raised\n" % version)
+            return 1
+        print(found)
+        return 0
     since = last_tag()
     log = git("log", "--no-merges", "--reverse", "--format=%s", *(["%s..HEAD" % since] if since else []))
     if log.returncode:
@@ -79,4 +99,4 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))
