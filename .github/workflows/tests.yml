@@ -6,10 +6,8 @@ on:
     paths-ignore:
       - "**/*.md"
       - "LICENSE.txt"
+  # Every pull request, docs too: the rulesets require these checks, and one skipped never passes.
   pull_request:
-    paths-ignore:
-      - "**/*.md"
-      - "LICENSE.txt"
   # The build and release workflows run these checks first.
   workflow_call:
 

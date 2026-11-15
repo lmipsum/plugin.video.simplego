@@ -36,3 +36,16 @@ def test_the_news_goes_into_addon_xml_escaped_and_replaces_the_old():
     xml = news.with_news(XML, "v1 (d)\n- A & B")
     assert "</assets>\n        <news>v1 (d)\n- A &amp; B</news>\n    </extension>" in xml
     assert news.with_news(xml, "v2").count("<news>") == 1 and "<news>v2</news>" in news.with_news(xml, "v2")
+
+
+def test_the_release_notes_are_this_versions_block_of_the_news():
+    xml = news.with_news(XML, "v2 (d)\n- B & C\n\nv1 (d)\n- A")
+    assert news.notes(xml, "2") == "v2 (d)\n- B & C" and news.notes(xml, "1") == "v1 (d)\n- A"
+    assert news.notes(xml, "3") is None and news.notes(XML, "1") is None
+
+
+def test_the_last_tag_is_the_newest_version_not_the_nearest(monkeypatch):
+    # A release tags main's merge of dev, which dev does not reach: by version, v0.8.10 after v0.8.9.
+    listed = type("Run", (), {"returncode": 0, "stdout": "v0.8.10\nv0.8.9\n"})
+    monkeypatch.setattr(news, "git", lambda *args: listed if args[:2] == ("tag", "--list") else None)
+    assert news.last_tag() == "v0.8.10"
