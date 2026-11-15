@@ -1,7 +1,7 @@
 """LAN receiver for logging in from a phone.
 
-A human logs in on a phone and sends back the address the login ends on: Kodi's QR code opens
-GET /?c=<code>, a page with the login button and a field for the final address, posted to /login.
+The user logs in on a phone and sends back the address the login ends on. Kodi's QR code opens
+GET /?c=<code>: a page with the login button and a field for that address, posted to /login.
 
 It runs only while the login dialog is open and requires the code Kodi shows. Its
 texts are the add-on's strings (see TEXT_IDS), in Kodi's language.

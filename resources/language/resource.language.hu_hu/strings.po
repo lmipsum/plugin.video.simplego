@@ -607,3 +607,15 @@ msgstr "Ahol a szolgáltatás kínálja. Kikapcsolva: 720p."
 msgctxt "#30268"
 msgid "Tap the address to log in on this device, or scan the QR code with another phone on the same Wi-Fi. On the page that opens, log in with your Telekom TV GO e-mail address and password, then copy the address of the page you land on from the address bar, paste it and send it. This window closes by itself. Back = cancel."
 msgstr "Koppints a címre a belépéshez ezen az eszközön, vagy olvasd be a QR-kódot egy másik, azonos Wi-Fi-n lévő telefonnal. A megnyíló oldalon lépj be a Telekom TV GO e-mail-címeddel és jelszavaddal, majd a belépés után megjelenő oldal címét másold ki a címsorból, illeszd be, és küldd el. Az ablak magától bezárul. Vissza = mégsem."
+
+msgctxt "#30269"
+msgid "Expired"
+msgstr "Lejárt"
+
+msgctxt "#30270"
+msgid "%d days left"
+msgstr "még %d nap"
+
+msgctxt "#30271"
+msgid "%d hours left"
+msgstr "még %d óra"

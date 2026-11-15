@@ -94,6 +94,7 @@ def follower(proxy=None, known=None):
         key=("channel", "start"),
         restart=lambda part, seconds: restarts.append((part, round(seconds, 1), time.time())),
     )
+    follower.started(now=time.time() - keyfollower.SETTLE)  # playing, its position settled
     return follower, made, restarts
 
 
@@ -128,6 +129,19 @@ def test_a_jump_into_the_next_key_part_restarts_right_there(kodi):
     keys, _, restarts = follower()
     keys.follow(450.0, Player(450.0))
     assert [(part, target) for part, target, _ in restarts] == [(1, 450.0)]
+
+
+def test_nothing_is_followed_before_playback_started(kodi):
+    keys = keyfollower.KeyFollower(Proxy(), lambda part: Proxy(part), restart=lambda *a: restarts.append(a))
+    restarts = []
+    keys.follow(450.0, Player(450.0))  # a jump, were it playing
+    assert restarts == []
+
+
+def test_a_position_below_zero_is_not_taken_for_a_jump(kodi):
+    keys, _, restarts = follower(Proxy(part=1))
+    keys.follow(-1794473025.4, Player(-1794473025.4))
+    assert restarts == []
 
 
 def test_the_next_part_is_made_ready_twenty_seconds_ahead(kodi):

@@ -607,3 +607,15 @@ msgstr ""
 msgctxt "#30268"
 msgid "Tap the address to log in on this device, or scan the QR code with another phone on the same Wi-Fi. On the page that opens, log in with your Telekom TV GO e-mail address and password, then copy the address of the page you land on from the address bar, paste it and send it. This window closes by itself. Back = cancel."
 msgstr ""
+
+msgctxt "#30269"
+msgid "Expired"
+msgstr ""
+
+msgctxt "#30270"
+msgid "%d days left"
+msgstr ""
+
+msgctxt "#30271"
+msgid "%d hours left"
+msgstr ""

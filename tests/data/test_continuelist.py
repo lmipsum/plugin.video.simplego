@@ -14,11 +14,11 @@ def test_continue_watching_keeps_watched_and_reset_rows_greyed_until_they_leave_
     assert continuelist.rows([mark(1), mark(2), mark(3, share=0.95), old]) == [
         (mark(1), ACTIVE),
         (mark(2), ACTIVE),
-        (mark(3, share=0.95), WATCHED),  # from 90% on, as Kodi counts it
+        (mark(3, share=0.95), ACTIVE),  # in the account's list: resumable, however far it got
     ]
     continuelist.set_removed(mark(2))  # reset here: gone from the account's list
     # Gone from the list without a reset here: watched to its end (the provider's apps remove none).
-    assert continuelist.rows([mark(3, share=0.95)]) == [(mark(3, share=0.95), WATCHED), (mark(1), WATCHED), (mark(2), REMOVED)]
+    assert continuelist.rows([mark(3, share=0.95)]) == [(mark(3, share=0.95), ACTIVE), (mark(1), WATCHED), (mark(2), REMOVED)]
     # Back in the list (watched again): active again; the greyed ones below.
     assert continuelist.rows([mark(2)])[0] == (mark(2), ACTIVE)
     # A week after the programme ended: no longer listed, nor kept.
@@ -45,3 +45,20 @@ def test_a_row_is_on_catch_up_while_its_airing_is_among_its_programmes():
     assert continuelist.on_catchup(mark, [later, {"station_id": 1246, "start_utc": "2026-10-29T13:50:00Z"}])
     assert not continuelist.on_catchup(mark, [later])  # gone from catch-up; the programme's later airing is another
     assert not continuelist.on_catchup({"id": "film"}, [later])  # no airing to tell by
+
+
+def test_rows_go_soonest_to_leave_catch_up_first_and_say_how_long_they_are_expected_to_stay(monkeypatch):
+    continuelist = continue_at(monkeypatch)
+    ACTIVE, WATCHED = continuelist.ACTIVE, continuelist.WATCHED
+
+    def mark(end):
+        return {"id": "1_2026-10-27T20:00:00Z_%s" % end, "time_seconds": 1800, "runtime_seconds": 3600}
+
+    later, sooner, done = mark("2026-10-28T21:00:00Z"), mark("2026-10-27T21:00:00Z"), mark("2026-10-26T21:00:00Z")
+    continuelist.rows([done])  # listed once; gone from the account's list since: watched
+    # The active ones first, each the soonest to leave first; then the greyed ones.
+    assert continuelist.rows([later, sooner]) == [(sooner, ACTIVE), (later, ACTIVE), (done, WATCHED)]
+    # 72 h after the programme ended (measured on Mozi+ HD): at 12:00Z the next day, 57 h left.
+    assert continuelist.seconds_left(later) == 57 * 3600
+    assert continuelist.seconds_left(mark("2026-10-25T21:00:00Z")) < 0  # past it
+    assert continuelist.seconds_left({"id": "film"}) is None  # no airing to tell by

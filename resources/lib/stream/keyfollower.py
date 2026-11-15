@@ -69,12 +69,18 @@ class KeyFollower:
         # the proxy's HTTP threads.
         self._lock = threading.Lock()
 
-    def started(self):
-        """Note that playback (re)started now: the position settles for SETTLE seconds."""
-        self._started_at = time.time()
+    def started(self, now=None):
+        """Note that playback (re)started: the position settles for SETTLE seconds."""
+        self._started_at = now or time.time()
 
     def follow(self, position, player, now=None):
-        """Act once a second while it plays: prepare the next part, time its start, or follow a jump."""
+        """Act once a second while it plays: prepare the next part, time its start, or follow a jump.
+
+        Nothing before playback started: Kodi's position is then no position (once a stream whose
+        video could not open read as -1794473025 s, followed as a jump, 2026-11-15).
+        """
+        if not self._started_at:
+            return
         now = now or time.time()
         rewriter = self.proxy.rewriter
         if rewriter.live_changes:
@@ -84,7 +90,7 @@ class KeyFollower:
             return
         if self._key and rewriter.found_changes and self._known is not None:
             self._known.setdefault(self._key, rewriter.found_changes)
-        if now - self._started_at < SETTLE or self._restart_at or not self.restart:
+        if now - self._started_at < SETTLE or self._restart_at or not self.restart or position < 0:
             return
         part = rewriter.part_of(position)
         ahead = changes[rewriter.part] if rewriter.part < len(changes) else None

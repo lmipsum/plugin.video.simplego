@@ -114,6 +114,15 @@ def hide_right_labels(handle):
     xbmcplugin.addSortMethod(handle, xbmcplugin.SORT_METHOD_NONE, labelMask="%L", label2Mask=" ")
 
 
+def right_labels_from_production_code(handle):
+    """Show the rows' own labels and on their right their production code in this list.
+
+    Kodi fills a plugin row's right label from the sort method's mask only (its own label2 is
+    overwritten): a list with something to say there puts it in the production code ("%P").
+    """
+    xbmcplugin.addSortMethod(handle, xbmcplugin.SORT_METHOD_NONE, labelMask="%L", label2Mask="%P")
+
+
 def set_channel_sort_keys(tag, channel, position):
     """Give a channel's row what Kodi's sorts read (see add_channel_sorts): its place, name and number."""
     tag.setProductionCode("%04d" % position)
