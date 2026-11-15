@@ -30,7 +30,10 @@
             <screenshot>resources/screenshots/screenshot-continue.jpg</screenshot>
             <screenshot>resources/screenshots/screenshot-guide.jpg</screenshot>
         </assets>
-        <news>v0.8.155 (2026-11-11)
+        <news>v0.8.156 (2026-11-15)
+- Continue watching lists the soonest to expire first, says how long each stays, and marks the expired ones
+
+v0.8.155 (2026-11-11)
 - Kodi off Android is refused before any stream session, the add-on installs on Android only
 - The first play waits for InputStream Adaptive before opening the stream session
 - One phone login at a time, a second Log in press while the first is coming up ignored
@@ -55,10 +58,6 @@ v0.8.151 (2026-11-08)
 v0.8.150 (2026-11-08)
 - The repository connects right after its first install from the file manager
 - Play live, from the beginning and watching back in Full HD (1080p) where offered
-
-v0.8.143 (2026-11-02)
-- No longer trust root certificates that certifi dropped as compromised
-- List the repository zip in Kodi's file manager
 
 v0.8.142 (2026-11-02)
 - First version: live TV and radio, watching back, favourites, Kodi TV guide</news>
