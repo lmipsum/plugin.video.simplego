@@ -3,17 +3,17 @@ name: release
 # Run by hand on main once dev is merged and addon.xml has the new version
 # (Actions → release → Run workflow, or `gh workflow run release.yml --ref main`).
 # It writes the news from the feat:/fix: commits (see scripts/update_news.py), commits it,
-# tags that commit vX.Y.Z, publishes the installable zip and adds it to the Kodi repository
-# (the gh-pages branch, see scripts/build_repo.py). Merge main back into dev afterwards.
-# With submit_to_kodi it also opens the pull request to Kodi's official repository (see kodi-submit.yml):
-# for stable versions only, as that repository wants few updates (https://kodi.wiki/view/Add-on_rules#Updates).
+# tags that commit vX.Y.Z and publishes the installable zip. Merge main back into dev afterwards.
+# With submit_to_kodi (on unless unticked) it also opens the pull request to Kodi's official repository,
+# where users install and update the add-on from (see kodi-submit.yml). That repository wants few
+# updates (https://kodi.wiki/view/Add-on_rules#Updates): untick it for a version not worth one.
 on:
   workflow_dispatch:
     inputs:
       submit_to_kodi:
         description: "Also submit this version to Kodi's official repository"
         type: boolean
-        default: false
+        default: true
 
 permissions:
   contents: write
@@ -45,7 +45,7 @@ jobs:
       - name: Version not released yet
         id: version
         run: |
-          version=$(python scripts/build_repo.py version)
+          version=$(python scripts/build_zip.py version)
           if git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
             echo "v$version is released already: raise the version in addon.xml first"
             exit 1
@@ -56,9 +56,7 @@ jobs:
         run: python scripts/update_news.py > notes.md
       - name: Build
         # Before the tag: a failed build leaves nothing released, so the run can be repeated.
-        run: |
-          python scripts/build_zip.py
-          python scripts/build_repo.py zip repository.lmipsum
+        run: python scripts/build_zip.py
       - name: Commit the news and tag it
         run: |
           git config user.name "github-actions[bot]"
@@ -70,18 +68,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "v$VERSION" dist/*.zip --title "v$VERSION" --notes-file notes.md
-      - name: Publish to the Kodi repository
-        # The gh-pages branch, served by GitHub Pages once the repository is public (see repository.lmipsum).
-        run: |
-          if git fetch -q origin gh-pages; then
-            git worktree add pages FETCH_HEAD && git -C pages switch -c gh-pages
-          else
-            git worktree add --orphan -b gh-pages pages
-          fi
-          python scripts/build_repo.py publish pages dist/*.zip
-          git -C pages add -A
-          git -C pages commit -m "Publish the Kodi repository"
-          git -C pages push origin gh-pages
 
   kodi:
     needs: release

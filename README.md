@@ -54,15 +54,12 @@ Tested on another device or version? Please [open an issue](https://github.com/l
 
 ## Installation
 
-Through the add-on's Kodi repository, so that Kodi installs its updates too:
+From Kodi's official repository, which installs its updates too: *Settings → Add-ons → Install
+from repository → Kodi Add-on repository → Video add-ons → Simple GO*.
 
-1. Download `repository.lmipsum-<version>.zip` from the
-   [latest release](https://github.com/lmipsum/plugin.video.simplego/releases/latest).
-2. In Kodi: *Settings → System → Add-ons*, enable *Unknown sources*.
-3. *Settings → Add-ons → Install from zip file* and pick the zip.
-4. *Install from repository → lmipsum repository → Video add-ons → Simple GO*.
-
-Without updates: install `plugin.video.simplego-<version>.zip` from the same release in step 3 instead.
+A version newer than the repository's: download `plugin.video.simplego-<version>.zip` from the
+[latest release](https://github.com/lmipsum/plugin.video.simplego/releases/latest), enable *Unknown
+sources* (*Settings → System → Add-ons*), then *Settings → Add-ons → Install from zip file*.
 
 ## Logging in
 

@@ -12,7 +12,6 @@ CONTRIBUTING.md export-ignore
 README.md export-ignore
 SECURITY.md export-ignore
 pytest.ini export-ignore
-repository.lmipsum export-ignore
 requirements-dev.txt export-ignore
 ruff.toml export-ignore
 scripts export-ignore
