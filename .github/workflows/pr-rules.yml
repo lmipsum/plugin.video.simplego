@@ -1,0 +1,38 @@
+name: pr-rules
+
+# The repository's rules for every pull request (see scripts/pr_rules.py): into dev, a typed title,
+# an open issue closed (every TODO(#N) taken out too), no private address; into main, only dev.
+# A required check of the dev and main rulesets: nothing goes in that breaks them.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+  issues: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rules:
+    name: Pull request rules
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0 # the base, for the commits and the diff
+      - name: Check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # From the event, as data: never put into the script itself.
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE: ${{ github.base_ref }}
+          HEAD: ${{ github.head_ref }}
+        run: |
+          OPEN_ISSUES=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 500 --json number --jq '.[].number' | tr '\n' ' ')
+          export OPEN_ISSUES
+          python3 scripts/pr_rules.py "$BASE" "$HEAD"

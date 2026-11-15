@@ -49,10 +49,16 @@ as `aaaa.bbbb.cccc`. The pre-commit hook and CI refuse anything shaped like a to
 
 ## Pull requests
 
-Open pull requests against the `dev` branch. CI must be green before review.
+Open pull requests against the `dev` branch; neither `dev` nor `main` takes a push, for anyone. A pull
+request into `dev` is squash-merged: its title becomes the commit's subject and its body the message, so
+the *pr-rules* check, required like the tests, refuses one whose title is not a typed subject, whose body
+closes no open issue (`Closes #12`: the issue closes when the commit reaches `main`), that takes out a
+`TODO(#N)` without closing #N, or adds a private IP address.
 
 ## Releases
 
-Raise the version in `addon.xml` on `dev`, merge `dev` into `main`, then run the *release* workflow on
-`main`: it writes the news, tags the commit and publishes the zip. Merge `main` back into `dev`.
+On `dev`, raise the version in `addon.xml` and run `python scripts/update_news.py` (the news from the
+`feat:` and `fix:` commits since the last release), in one pull request. Merge `dev` into `main` with a
+pull request, then run the *release* workflow on `main`: it tags the commit and publishes the zip, its
+notes the version's news.
 To try a branch on a device first, run the *build* workflow on it and take the zip from its artifacts.
