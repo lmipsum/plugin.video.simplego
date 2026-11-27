@@ -20,7 +20,7 @@ from xml.sax.saxutils import unescape
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LIMIT = 1500
 # A Conventional Commits subject that users would care about: "feat: ..." or "fix(scope): ...".
-USER_FACING = re.compile(r"^(?:feat|fix)(?:\([^)]*\))?!?:\s*(.+)$")
+USER_FACING = re.compile(r"^(?:feat|fix)(?:\([^)]*\))?!?:\s*(.+?)(?:\s+\(#\d+\))?$")
 NEWS = re.compile(r"\n?[ \t]*<news>(.*?)</news>", re.S)
 
 
@@ -39,7 +39,10 @@ def last_tag():
 
 
 def changes(subjects):
-    """Return the user-facing lines of commit subjects, their prefixes dropped, oldest first."""
+    """Return the user-facing lines of commit subjects, oldest first.
+
+    Their prefixes are dropped, and the pull request's number a squash merge puts at the end ("(#58)").
+    """
     found = [USER_FACING.match(s.strip()) for s in subjects]
     return [m.group(1)[:1].upper() + m.group(1)[1:] for m in found if m]
 
