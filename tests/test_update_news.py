@@ -22,6 +22,11 @@ def test_only_features_and_fixes_make_the_news_without_their_prefixes():
     assert news.block("1.0.1", "2026-11-02", []) == "v1.0.1 (2026-11-02)\n- Maintenance update."
 
 
+def test_a_squash_merges_pull_request_number_stays_out_of_the_news():
+    subjects = ["fix: the title on waking (#58)", "feat: keep (#2) in the text"]
+    assert news.changes(subjects) == ["The title on waking", "Keep (#2) in the text"]
+
+
 def test_a_new_version_comes_first_and_old_ones_only_as_far_as_kodi_allows():
     old = "v1.0.0 (2026-10-01)\n- First\n\n" + "v0.9.0 (2026-09-01)\n- " + "x" * news.LIMIT
     merged = news.merged("v1.0.1 (2026-11-02)\n- New", old)
