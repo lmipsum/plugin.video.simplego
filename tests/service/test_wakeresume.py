@@ -82,3 +82,33 @@ def test_something_else_stopped_plays_nothing_again(wake):
     wake.playing(None)
     wake.stopped(wakeresume.RETURN_IDLE, next_on_its_way=False)
     assert wake.played == []
+
+
+def test_a_live_channel_kodi_stops_after_falling_asleep_plays_only_on_waking_up(wake):
+    # Seen 2026-11-27: Kodi said it went to sleep, then stopped the channel, the last key long ago.
+    wake.playing({"id": "c1"})
+    wake.on_power("System.OnSleep")
+    wake.stopped(wakeresume.RETURN_IDLE, next_on_its_way=False)
+    assert wake.played == []  # not with the TV off
+    wake.on_power("System.OnWake")
+    assert wake.played == [({"id": "c1"}, "after waking up")]
+
+
+def test_a_return_kodi_falls_asleep_after_plays_nothing_until_it_wakes_up(monkeypatch):
+    # The stop a moment before Kodi says it sleeps looks like a return: its play, due later, is dropped.
+    timers = []
+    monkeypatch.setattr(
+        wakeresume.threading, "Timer", lambda delay, f, args: types.SimpleNamespace(start=lambda: timers.append((f, args)))
+    )
+    played = []
+    wake = wakeresume.WakeResume(lambda channel, why: played.append(why), lambda: False)
+    wake.playing({"id": "c1"})
+    wake.stopped(wakeresume.RETURN_IDLE, next_on_its_way=False)
+    wake.on_power("System.OnSleep")
+    for f, args in timers:
+        f(*args)
+    assert played == []
+    wake.on_power("System.OnWake")
+    f, args = timers[-1]
+    f(*args)
+    assert played == ["after waking up"]

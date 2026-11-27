@@ -218,6 +218,33 @@ def test_the_guide_is_asked_once_for_a_programme_watched_back(kodi, monkeypatch)
     assert stream["details"]["found"] is entry and stream["bookmark"]["program_id"] == "P1"
 
 
+@pytest.mark.parametrize(("on_air", "title"), [({"description": "Híradó"}, "Híradó"), (None, "M1 HD")])
+def test_a_live_channel_played_by_the_service_is_titled_with_the_programme_on_air(kodi, monkeypatch, on_air, title):
+    from resources.lib.stream import streamsession
+
+    class Client:
+        def channel_of(self, channel_id):
+            return {"name": "M1 HD"}
+
+        def station_of(self, channel_id):
+            return "1001"
+
+    asked = []
+    monkeypatch.setattr(streamsession.onair, "on_air", lambda client, station, when: asked.append(when) or (on_air, None))
+    details = streamsession.live_details(Client(), {"id": "C1", "media_id": "M"})
+    assert details["title"] == title and time.time() - asked[0] < 5  # what is on now
+
+
+def test_a_live_title_the_guide_cannot_give_does_not_stop_the_channel(kodi, monkeypatch):
+    from resources.lib.stream import streamsession
+
+    def fail(*args):
+        raise OSError("no network")
+
+    monkeypatch.setattr(streamsession.onair, "on_air", fail)
+    assert streamsession.live_details(types.SimpleNamespace(station_of=lambda cid: "1001"), {"id": "C1"}) is None
+
+
 class _SleepyProxy:
     def __init__(self):
         self.slept = self.stopped = None
