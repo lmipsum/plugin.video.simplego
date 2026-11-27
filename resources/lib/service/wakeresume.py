@@ -1,8 +1,11 @@
 """Playing the live channel again that was on when Kodi went to sleep or into the background.
 
-On waking Kodi resumes what was watched back but never a live channel, so that is played again here.
+On waking Kodi plays again the item it stored going to sleep, a live channel too (seen 2026-11-27),
+by its old address; when nothing plays a little after the wake, the live channel is played again here.
 Back from another HDMI input, Kodi closes the live channel the TV paused on the way out, with no
-sleep or wake notice: a live stop with no key pressed for a while counts as that return.
+sleep or wake notice: a live stop with no key pressed for a while counts as that return, unless
+Kodi is asleep: going to sleep it stops the channel too, sometimes only after it said so, and a
+channel played then plays on with the TV off (seen 2026-11-27); its stored item failed on waking.
 """
 
 import threading
@@ -35,6 +38,7 @@ class WakeResume:
         self._resume = None  # the live channel to play again on waking up
         self._started = 0  # when the live channel playing started
         self._replayed = None  # the id of the live channel playing because of a return
+        self._asleep = False  # between System.OnSleep and System.OnWake
 
     def playing(self, channel):
         """Note what plays now: a live channel of ours, or None for anything else."""
@@ -60,31 +64,36 @@ class WakeResume:
             channel = self._live[0]
             self._live = (channel, now)
             stopped_again = self._replayed == channel["id"] and now - self._started < SHORT_PLAY
-            if next_on_its_way or idle < RETURN_IDLE or stopped_again:
+            if next_on_its_way or idle < RETURN_IDLE or stopped_again or self._asleep:
                 self._replayed = None
                 return
             self._replayed = channel["id"]
-        self._play_later(channel, "after a return")
+        self._play_later(channel, "after a return", on_return=True)
 
     def on_power(self, method):
         """Handle System.OnSleep / System.OnWake (the TV off and on)."""
         if method == "System.OnSleep":
             with self._lock:
+                self._asleep = True
                 live = self._live
             recent = live and (live[1] is None or time.time() - live[1] < SLEEP_STOP)
             self._resume = live[0] if recent else None
-        elif method == "System.OnWake" and self._resume:
+        elif method == "System.OnWake":
+            with self._lock:
+                self._asleep = False
+            if not self._resume:
+                return
             channel, self._resume = self._resume, None
             self._play_later(channel, "after waking up")
 
-    def _play_later(self, channel, why):
+    def _play_later(self, channel, why, on_return=False):
         """Play the live channel again after WAKE_DELAY, once Kodi's own resume jobs are done."""
-        timer = threading.Timer(WAKE_DELAY, self._play_again, (channel, why))
+        timer = threading.Timer(WAKE_DELAY, self._play_again, (channel, why, on_return))
         timer.daemon = True
         timer.start()
 
-    def _play_again(self, channel, why):
-        """Play the live channel again, unless something plays already."""
-        if self._is_playing():
+    def _play_again(self, channel, why, on_return):
+        """Play the live channel again, unless something plays already or Kodi fell asleep since the return."""
+        if self._is_playing() or (on_return and self._asleep):
             return
         self._play_live(channel, why)

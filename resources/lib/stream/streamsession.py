@@ -138,6 +138,22 @@ def _guide_entry(client, channel, programme):
     return onair.on_air(client, client.station_of(channel["id"]), programme["start"])[0]
 
 
+def live_details(client, channel):
+    """Return the details (see guidedata.details) of the programme on air on a live channel.
+
+    The channel's name alone if the guide does not know it; None if neither can be read.
+
+    For a live channel the service plays itself (on waking up, at a key change): with no row behind
+    it, Kodi shows the address's last part ("manifest") as its title.
+    """
+    try:
+        entry = onair.on_air(client, client.station_of(channel["id"]), time.time())[0]
+        return guidedata.details(entry or {"description": (client.channel_of(channel["id"]) or {}).get("name") or ""})
+    except Exception as e:  # noqa: BLE001 - a title must not stop the channel from playing
+        kodiutil.log("the programme on air is not known: %s" % e, xbmc.LOGWARNING)
+        return None
+
+
 def programme_start(client, channel, when):
     """Return the start (a timestamp) of the programme on a channel at `when`; None if the guide does not know."""
     programme = onair.on_air(client, client.station_of(channel["id"]), when)[0]

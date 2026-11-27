@@ -71,5 +71,7 @@ jobs:
     needs: release
     if: inputs.submit_to_kodi
     uses: ./.github/workflows/kodi-submit.yml
+    # A called workflow gets no secrets of its own: the submitter needs the Kodi fork's token.
+    secrets: inherit
     with:
       ref: ${{ needs.release.outputs.tag }}

@@ -157,7 +157,7 @@ class PlayService:
         def play():
             proxy = session.switch_to(part)
             item = playitem.spec(session.stream, proxy.manifest, proxy.url, kodiutil.kodi_major())
-            li = resolveditem.list_item(item)
+            li = resolveditem.list_item(self._with_programme_on_air(item, session.stream["channel"]))
             if seconds is not None:  # None: live, from its edge
                 li.setProperty("StartOffset", "%.1f" % seconds)
             self._player.play(item["path"], li)
@@ -258,7 +258,16 @@ class PlayService:
             return
         kodiutil.log("live channel %s plays again %s" % (channel["id"], why))
         # The service hands Kodi the ready item, as at a key change (see _restart).
-        self._player.play(item["path"], resolveditem.list_item(item))
+        self._player.play(item["path"], resolveditem.list_item(self._with_programme_on_air(item, channel)))
+
+    def _with_programme_on_air(self, item, channel):
+        """Return a live item the service plays itself with the programme on air, as a channel row gives it a click.
+
+        A programme watched back has its own details already.
+        """
+        if not item.get("live", True) or item.get("details"):
+            return item
+        return dict(item, details=streamsession.live_details(self._shared_client(), channel))
 
     def _sleep(self, session):
         """Close a stream whose item Kodi may still play again: its proxy stays, to reopen it then.
