@@ -190,7 +190,9 @@ def test_a_live_channel_plays_again_when_kodi_wakes_up(service, monkeypatch):
         ),
     )
     monkeypatch.setattr(service._player, "isPlaying", lambda: False, raising=False)
-    monkeypatch.setattr(service._player, "play", lambda path, li: played.append(path), raising=False)
+    monkeypatch.setattr(service._player, "play", lambda path, li: played.append((path, li)), raising=False)
+    on_air = {"title": "Híradó", "episode": "", "plot": "", "genres": [], "type": "show", "image": ""}
+    monkeypatch.setattr(playservice.streamsession, "live_details", lambda client, channel: on_air)
     live = Session(8)
     live.started = False
     service._sessions = [live]
@@ -198,7 +200,9 @@ def test_a_live_channel_plays_again_when_kodi_wakes_up(service, monkeypatch):
     service.on_stopped()  # the TV off: Kodi stops it, then goes to sleep
     service.on_power("System.OnSleep")
     service.on_power("System.OnWake")
-    assert asked == [("c8", "LIVE$8")] and played == ["http://p/m"]
+    assert asked == [("c8", "LIVE$8")] and [path for path, li in played] == ["http://p/m"]
+    # With no row behind it, the programme on air is its title, not its address's last part ("manifest").
+    assert played[0][1].tag["Title"] == "Híradó"
 
 
 @pytest.mark.parametrize(("idle", "replayed"), [(wakeresume.RETURN_IDLE, True), (0, False)])

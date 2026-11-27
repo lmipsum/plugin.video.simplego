@@ -96,5 +96,12 @@ def test_the_info_over_playback_shows_the_logo_live_and_the_16x9_picture_watched
     assert li.art == {"icon": "logo.png", "poster": "logo.png"}
     # Watched back: the programme's 16:9 picture as poster, which the playback info shows.
     details = guidedata.details({"description": "Show", "program_id": "ABC"})
-    li = resolveditem.list_item(playitem.spec(dict(STREAM, logo="logo.png", details=details), "m", "l", 21))
+    back = dict(STREAM, logo="logo.png", details=details, programme={"start": "2026-10-28T20:00:00Z"})
+    li = resolveditem.list_item(playitem.spec(back, "m", "l", 21))
     assert li.art["poster"] == li.art["thumb"] and li.art["icon"] == "logo.png"
+
+
+def test_live_with_the_programme_on_air_keeps_the_logo_as_poster(kodi):
+    details = guidedata.details({"description": "Híradó", "program_id": "ABC"})
+    li = resolveditem.list_item(playitem.spec(dict(STREAM, logo="logo.png", details=details), "m", "l", 21))
+    assert li.tag["Title"] == "Híradó" and li.art["poster"] == "logo.png"
